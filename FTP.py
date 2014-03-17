@@ -4,6 +4,7 @@ import ftplib
 import webbrowser
 import threading
 import urllib
+import os
 
 from pprint import pprint
 
@@ -21,22 +22,28 @@ def dump(obj):
 class FtpCommand(sublime_plugin.WindowCommand):
     def run(self):
 
+        self.ftp = ftplib.FTP('bluechipdigital.com')
+        self.ftp.login('digital', 'SExO@![I[[ce')
+
         ftplist = self.find('');
 
     def find(self, path, attrs=None):
-        # pprint(['attrs', attrs])
+        pprint(['DEBUG: finding', path, attrs])
         if attrs and attrs['type'] != 'dir':
-            return pprint('path is not a directory')
+            return self.download(path, attrs)
 
-        ftp = ftplib.FTP('bluechipdigital.com')
-        ftp.login('digital', 'SExO@![I[[ce')
-        ftplist = ftp.mlsd(path, ["type", "size", "perm"])
+        ftplist = self.ftp.mlsd(path, ["type", "size", "perm"])
 
         menu = []
         items = []
 
         for [name, attrs] in ftplist:
+            attrs['parent'] = path
             if name != '.':
+                if (path == '/' or path == '') and name == '..':
+                    continue
+                if attrs['type'] == 'dir':
+                    name = name + '/'
                 menu.append(name)
                 items.append([name, attrs])
 
@@ -44,10 +51,22 @@ class FtpCommand(sublime_plugin.WindowCommand):
 
         def action(index):
             [name, attrs] = items[index];
-            # pprint({'name': name, 'attrs': attrs, 'index': index})
+            #pprint({'name': name, 'attrs': attrs, 'index': index})
+            if name == '..':
+                return this.find(os.path.basename(attrs['parent']))
             this.find(name, attrs)
 
-        self.window.show_quick_panel(menu, action)
+        sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action), 5)
+
+    def download(self, path, attrs):
+        fullpath = os.path.join(attrs['parent'], path)
+        pprint('downloading %s' % fullpath)
+        name = os.path.basename(path)
+        tempfile = os.path.join(sublime.cache_path(), name)
+        fh = open(tempfile, 'wb')
+        self.ftp.retrbinary('RETR %s' % fullpath, fh.write)
+        pprint('opening file')
+        sublime.active_window().open_file(tempfile)
 
 class FtpReadmeCommand(sublime_plugin.WindowCommand):
     def run(self):
