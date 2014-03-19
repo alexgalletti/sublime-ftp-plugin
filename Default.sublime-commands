@@ -1,7 +1,11 @@
 [
     {
         "caption": "FTP: Connect To Server...",
-        "command": "ftp"
+        "command": "ftp_connect"
+    },
+    {
+        "caption": "FTP: Browse Server...",
+        "command": "ftp_browse"
     },
     {
         "caption": "FTP: Readme/Help",
