@@ -1,6 +1,6 @@
 [
     {
-        "caption": "FTP: Connect To Server...",
+        "caption": "FTP: Connect to Server...",
         "command": "ftp_connect"
     },
     {
@@ -8,7 +8,54 @@
         "command": "ftp_browse"
     },
     {
+        "caption": "FTP: Create Server...",
+        "command": "ftp_create_server"
+    },
+    {
+        "caption": "FTP: Edit Server...",
+        "command": "ftp_edit_server"
+    },
+    {
+        "caption": "FTP: Delete Server...",
+        "command": "ftp_delete_server"
+    },
+    {
         "caption": "FTP: Readme/Help",
         "command": "ftp_readme"
+    },
+    {
+        "caption": "FTP: Global Settings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/FTP/FTP.sublime-settings"
+        }
+    },
+    {
+        "caption": "FTP: Global Key Bindings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/FTP/Default (Windows).sublime-keymap",
+            "platform": "Windows"
+        }
+    },
+    {
+        "caption": "FTP: Global Key Bindings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/FTP/Default (OSX).sublime-keymap",
+            "platform": "OSX"
+        }
+    },
+    {
+        "caption": "FTP: Global Key Bindings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/FTP/Default (Linux).sublime-keymap",
+            "platform": "Linux"
+        }
     }
 ]

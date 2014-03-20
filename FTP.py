@@ -10,9 +10,9 @@ import datetime
 import json
 import os
 import sys
+import hashlib
 from pprint import pprint
-
-
+import difflib
 
 def splitpath(path):
     allparts = []
@@ -36,7 +36,9 @@ def md5_for_file(f, block_size=2**20):
         if not data:
             break
         md5.update(data)
-    return md5.digest()
+    # return md5.digest()
+    f.seek(0)
+    return md5.hexdigest()
 
 # rips out the temp directory and plugin directory leaving the info we want
 def segmentPath(path):
@@ -47,17 +49,6 @@ def segmentPath(path):
             goodsegments = segments[i+1:]
             break
     return goodsegments
-
-def dump(obj):
-    '''return a printable representation of an object for debugging'''
-    newobj=obj
-    if '__dict__' in dir(obj):
-        newobj=obj.__dict__
-        if ' object at ' in str(obj) and not newobj.has_key('__type__'):
-            newobj['__type__']=str(obj)
-        for attr in newobj:
-            newobj[attr]=dump(newobj[attr])
-    pprint(newobj)
 
 connections = {}
 
@@ -73,7 +64,7 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
             return
 
         if index == 0:
-            self.window.run_command('ftp_new_server_config')
+            self.window.run_command('ftp_create_server')
             return
 
         self.window.run_command('ftp_browse', {'server': self.servers[index][0]})
@@ -98,7 +89,7 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
 
 
 class FtpBrowseCommand(sublime_plugin.WindowCommand):
-    def run(self, server=None):
+    def run(self, server=None, stop_at_connect=False):
 
         startup_path = None
 
@@ -108,11 +99,12 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             datapath = segmentPath(os.path.dirname(current_file_path))
 
             if datapath != None:
-                server = datapath[:1][0]
                 try:
+                    server = datapath[:1][0]
                     startup_path = os.path.join(*(datapath[1:]))
                 except Exception:
                     print('error setting starup path, defaulting to nothing')
+                    return
             else:
                 return self.window.run_command('ftp_connect')
 
@@ -141,15 +133,25 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         self.conn = connections[server]
 
+        self.current_path = None
+        self.current_attrs = None
+
         # sublime.status_message('Establishing connection to %s' % self.site);
 
         sublime.status_message('Connected to %s' % self.conn['server']);
+
+        if stop_at_connect == True:
+            return False
 
         ftplist = self.find(startup_path if startup_path != None else '');
 
     def find(self, path, attrs=None):
 
+        self.current_path = path
+        self.current_attrs = attrs
+
         path = os.path.join(attrs['parent'] if attrs != None and 'parent' in attrs else '', path)
+
         pprint(['DEBUG: finding', path, attrs])
 
         if attrs != None and 'action' in attrs:
@@ -190,10 +192,16 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             if index == -1:
                 return
 
+            if index == 0:
+                return self.goto()
+
+            if index == 1:
+                return self.folder_actions()
+
             [name, attrs] = items[index];
             #pprint({'name': name, 'attrs': attrs, 'index': index})
             if name == '..':
-                return this.find(os.path.basename(attrs['parent']))
+                return this.find(os.path.dirname(attrs['parent']))
             this.find(name, attrs)
 
         sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action), 1)
@@ -211,83 +219,157 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         fh = open(temppath, 'wb')
         self.conn['ftp'].retrbinary('RETR %s' % path, fh.write)
 
+        fh.close()
+
         sublime.set_timeout(lambda: sublime.active_window().open_file(temppath), 1)
 
+    def goto(self):
+        pass
+
+    def file_actions(self):
+        menu = [u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete']
+        sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action), 1)
+
+    def folder_actions(self):
+
+        def action(index):
+            if index == 1:
+                self.find(self.current_path, self.current_attrs)
+
+        path = os.path.join(self.current_attrs['parent'] if self.current_attrs != None and 'parent' in self.current_attrs else '', self.current_path)
+
+        menu = ['%s:/%s' % (self.conn['config']['host'], path), u'\u2022 Back', u'\u2022 New File', u'\u2022 New Folder', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete']
+        sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action), 1)
 
 class RemoteSync(sublime_plugin.EventListener):
 
     # needs to check connection before attempting to store the binary
-    def on_post_save(self, view):
+    def on_post_save_async(self, view):
         filepath = view.file_name()
 
         datapath = segmentPath(filepath)
 
-        site = datapath[:1][0]
+        site = None
 
         try:
+            site = datapath[:1][0]
             realpath = os.path.join(*(datapath[1:]))
         except Exception:
-            print('error saving file on save')
+            # remove this message
+            # print('error saving file on save, realpath could not be found')
             return None
 
         fh = open(filepath, 'rb')
 
+        view.window().run_command('ftp_browse', {'server': site, 'stop_at_connect': True})
+
         if site in connections:
-            connections[site]['ftp'].storbinary('STOR %s' % realpath, fh)
-            pprint('file saved')
-        else:
-            pprint('file being saved does not belong to a site')
+
+            local_md5_hash = view.settings().get('hash', False)
+
+            tempfh = tempfile.SpooledTemporaryFile(1024*1024*5) #5MB file before writing to disk
+            connections[site]['ftp'].retrbinary('RETR %s' % realpath, tempfh.write)
+
+            tempfh.seek(0)
+
+            remote_md5_hash = md5_for_file(tempfh)
+
+            def action(index):
+                if index == 0: # confirm overite
+                    new_md5_hash = md5_for_file(fh)
+                    # print('hash for %s created: %s' % (filepath, new_md5_hash))
+                    view.settings().set('hash', new_md5_hash)
+                    connections[site]['ftp'].storbinary('STOR %s' % realpath, fh)
+                    # print('file saved')
+                    print('upload complete')
+                elif index == 2: # show diff of new and old file
+                    def convert(s):
+                        return s.decode('ascii')
+
+                    def setnewlines(s):
+                        return s.strip('\n') + '\n'
+
+                    diff = difflib.unified_diff(list(map(convert, tempfh.readlines())), list(map(convert, fh.readlines())), 'remote', 'local')
+                    diff = ''.join([setnewlines(str(x)) for x in diff])
+                    view.window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(filepath), 'data': diff, 'syntax': 'Packages/Diff/Diff.tmLanguage'})
+                    print('showing diff')
+                else:
+                    print('save operation aborted')
+
+                tempfh.close()
+                fh.close()
+
+            menu_overwrite = ['Overwrite Remote File', 'The file on the server has changed since first download']
+            menu_cancel = ['Cancel', 'Abort this operation, no changes will be uploaded']
+            menu_diff = ['Diff With Remote File', 'Show changes between this file and the remote one']
+
+            print('comparing hashes on server(%s) to local(%s)' % (remote_md5_hash, local_md5_hash))
+
+            if remote_md5_hash != local_md5_hash:
+                sublime.set_timeout(lambda: view.window().show_quick_panel([menu_overwrite, menu_cancel, menu_diff], action), 1)
+            else:
+                action(0)
+
+    def on_load_async(self, view):
+        path = view.file_name()
+        datapath = segmentPath(path)
+        site = None
+
+        try:
+            site = datapath[:1][0]
+            realpath = os.path.join(*(datapath[1:]))
+        except Exception:
+            # remove this message
+            # print('error saving file on save, realpath could not be found')
+            return None
+
+        view.window().run_command('ftp_browse', {'server': site, 'stop_at_connect': True})
+
+        if site in connections:
+            fh = open(path, 'rb')
+            md5_hash = md5_for_file(fh)
+            fh.close()
+            print('hash for %s created: %s' % (path, md5_hash))
+            view.settings().set('hash', md5_hash)
+
 
 class FtpReadmeCommand(sublime_plugin.WindowCommand):
     def run(self):
         webbrowser.open("http://git.bluechipdigital.com/blue-chip/sublime-ftp-plugin", 2, True)
 
-# sample class, not used
-class PrefixrApiCall(threading.Thread):
+class FtpEditServerCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        sublime.ok_cancel_dialog('edit server')
 
-    def __init__(self, sel, string, timeout):
-        self.sel = sel
-        self.original = string
-        self.timeout = timeout
-        self.result = None
-        threading.Thread.__init__(self)
+class FtpDeleteServerCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        sublime.ok_cancel_dialog('delete server')
 
-class FtpNewServerConfigCommand(sublime_plugin.TextCommand):
+class FtpCreateServerCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         new_file = sublime.active_window().new_file()
         new_file.set_name('untitled')
         new_file.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
-
-        new_config = """{
-    // sftp, ftp or ftps
-    "type": "sftp",
-
-    // hostname or ip address
-    "host": "example.com",
-
-    // user and password credentials
-    "user": "username",
-    "password": "password",
-
-    // optional port, default is 21
-    //"port": "21",
-
-    // startup path, defailt is /
-    //"remote_path": "/public_html",
-
-    // permissions for new files/directories
-    //"file_permissions": "664",
-    //"dir_permissions": "775",
-
-    // seconds to wait before aborting
-    //"connect_timeout": 30,
-
-    // some other optional options
-
-    //"keepalive": 120,
-    //"ftp_passive_mode": true,
-}"""
-
-        new_file.insert(edit, 0, new_config)
+        f = open(os.path.join(sublime.packages_path(), 'FTP', 'FTP.default-config'), 'r')
+        new_file.insert(edit, 0, f.read())
+        f.close()
         new_file.sel().clear()
         new_file.sel().add(sublime.Region(0))
+
+class FtpCreateBufferCommand(sublime_plugin.TextCommand):
+    def run(self, edit, name='untitled', data='', syntax=''):
+        new_file = sublime.active_window().new_file()
+        new_file.set_name(name)
+        new_file.set_syntax_file(syntax)
+        new_file.insert(edit, 0, data)
+        new_file.sel().clear()
+        new_file.sel().add(sublime.Region(0))
+
+# example thread class, not used
+# class PrefixrApiCall(threading.Thread):
+#     def __init__(self, sel, string, timeout):
+#         self.sel = sel
+#         self.original = string
+#         self.timeout = timeout
+#         self.result = None
+#         threading.Thread.__init__(self)

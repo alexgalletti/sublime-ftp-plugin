@@ -1,0 +1,8 @@
+[
+	{ "keys": ["super+ctrl+c","super+ctrl+c"], "command": "ftp_connect" },
+	{ "keys": ["super+ctrl+c","super+ctrl+b"], "command": "ftp_browse" },
+	{ "keys": ["super+ctrl+c","super+ctrl+e"], "command": "ftp_edit_server" },
+	{ "keys": ["super+ctrl+c","super+ctrl+d"], "command": "ftp_delete_server" },
+	{ "keys": ["super+ctrl+c","super+ctrl+n"], "command": "ftp_create_server" },
+	{ "keys": ["super+ctrl+c","super+ctrl+p"], "command": "ftp_show_panel" }
+]

@@ -1,0 +1,94 @@
+[
+    {
+        "id": "file",
+        "children":
+        [
+            {
+                "caption": "FTP",
+                "mnemonic": "b",
+                "children":
+                [
+                    { "command": "ftp_create_server", "caption": "Setup Server..." },
+                    { "command": "ftp_connect", "caption": "Connect to Server..." },
+                    { "command": "ftp_browse", "caption": "Browse Server..." },
+                    { "command": "ftp_edit_server", "caption": "Edit Server..." },
+                    { "command": "ftp_delete_server", "caption": "Delete Server..." }
+                ]
+            }
+        ]
+    },
+    {
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "id": "preferences",
+        "children":
+        [
+            {
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "id": "package-settings",
+                "children":
+                [
+                    {
+                        "caption": "FTP",
+                        "children":
+                        [
+                            { "command": "open_file", "args": {"file": "${packages}/FTP/FTP.sublime-settings"}, "caption": "Settings – Default" },
+                            { "command": "open_file", "args": {"file": "${packages}/User/FTP.sublime-settings"}, "caption": "Settings – User" },
+                            { "caption": "-" },
+                            {
+                                "command": "open_file", "args":
+                                {
+                                    "file": "${packages}/FTP/Default (Windows).sublime-keymap",
+                                    "platform": "Windows"
+                                },
+                                "caption": "Key Bindings – Default"
+                            },
+                            {
+                                "command": "open_file", "args":
+                                {
+                                    "file": "${packages}/FTP/Default (OSX).sublime-keymap",
+                                    "platform": "OSX"
+                                },
+                                "caption": "Key Bindings – Default"
+                            },
+                            {
+                                "command": "open_file", "args":
+                                {
+                                    "file": "${packages}/FTP/Default (Linux).sublime-keymap",
+                                    "platform": "Linux"
+                                },
+                                "caption": "Key Bindings – Default"
+                            },
+                            {
+                                "command": "open_file", "args":
+                                {
+                                    "file": "${packages}/User/Default (Windows).sublime-keymap",
+                                    "platform": "Windows"
+                                },
+                                "caption": "Key Bindings – User"
+                            },
+                            {
+                                "command": "open_file", "args":
+                                {
+                                    "file": "${packages}/User/Default (OSX).sublime-keymap",
+                                    "platform": "OSX"
+                                },
+                                "caption": "Key Bindings – User"
+                            },
+                            {
+                                "command": "open_file", "args":
+                                {
+                                    "file": "${packages}/User/Default (Linux).sublime-keymap",
+                                    "platform": "Linux"
+                                },
+                                "caption": "Key Bindings – User"
+                            },
+                            { "caption": "-" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+]

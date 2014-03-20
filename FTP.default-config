@@ -1,0 +1,29 @@
+{
+    // sftp, ftp or ftps
+    "type": "sftp",
+
+    // hostname or ip address
+    "host": "example.com",
+
+    // user and password credentials
+    "user": "username",
+    "password": "password",
+
+    // optional port, default is 21
+    //"port": "21",
+
+    // startup path, defailt is /
+    //"remote_path": "/public_html",
+
+    // permissions for new files/directories
+    //"file_permissions": "664",
+    //"dir_permissions": "775",
+
+    // seconds to wait before aborting
+    //"connect_timeout": 30,
+
+    // some other optional options
+
+    //"keepalive": 120,
+    //"ftp_passive_mode": true,
+}
