@@ -42,21 +42,55 @@ def debug(message):
 # window.run_command('show_panel', {'panel': 'output.ftp'})
 
 global_settings = sublime.load_settings('FTP.sublime-settings')
-debug_enabled = True
+
+debug_enabled = global_settings.get('debug', False)
+
 connections = {}
+
+class ConnectionWrapper(object):
+    def __init__(self, protocol):
+        super(ConnectionWrapper, self).__init__()
+        self.protocol = protocol
+
+
+class ConnectionManager(object):
+
+    active_connections = {}
+
+    def connect(self, config_name):
+        servers = self.getServers()
+
+        if config_name not in servers:
+            return False
+
+        connection = ConnectionWrapper('FTP')
+        connection.setConfig(servers[config_name])
+        self.set(config_name, connection)
+
+        return self.get(config_name)
+
+    def set(self, key, value):
+        self.active_connections[key] = value
+
+    def get(self, config_name):
+        if config_name in active_connections:
+            return active_connections[config_name]
+        return self.connect(config_name)
+
+    def getServers(self):
+        return os.listdir(os.path.join(sublime.packages_path(), 'User', 'sftp_servers'))
+
+Manager = ConnectionManager()
 
 class FtpConnectCommand(sublime_plugin.WindowCommand):
     def run(self):
-
         self.servers = []
-
         sublime.set_timeout(lambda: self.window.show_quick_panel(self.getServers(), self.menuAction), 1)
 
     def menuAction(self, index):
         if index == -1:
             return
-
-        if index == 0:
+        elif index == 0:
             self.window.run_command('ftp_create_server')
             return
 
@@ -64,16 +98,14 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
 
     def getServers(self):
 
-        configPath = os.path.join(sublime.packages_path(), 'User', 'sftp_servers')
-
-        configFiles = os.listdir(configPath)
+        files = Manager.getServers()
 
         self.servers.append(['Setup New Server...', 'Opens a config template for a new server'])
 
-        for name in configFiles:
+        for name in files:
             if name[:1] == '.':
                 continue
-            server = os.path.join(configPath, name)
+            server = os.path.join(os.path.join(sublime.packages_path(), 'User', 'sftp_servers'), name)
             try:
                 serverConfigFile = open(server)
                 data = sublime.decode_value(serverConfigFile.read())
@@ -85,6 +117,8 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
             self.servers.append([name, '%s://%s@%s:%s' % (data['type'].lower(), data['user'], data['host'], data['port'] if 'port' in data else 21)])
 
         return self.servers
+
+
 
 
 class FtpBrowseCommand(sublime_plugin.WindowCommand):
