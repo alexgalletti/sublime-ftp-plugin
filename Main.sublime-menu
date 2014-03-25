@@ -33,16 +33,14 @@
                         "caption": "FTP",
                         "children":
                         [
-                            { "command": "open_file", "args": {"file": "${packages}/FTP/FTP.sublime-settings"}, "caption": "Settings – Default" },
-                            { "command": "open_file", "args": {"file": "${packages}/User/FTP.sublime-settings"}, "caption": "Settings – User" },
-                            { "caption": "-" },
+                            { "command": "open_file", "args": {"file": "${packages}/FTP/FTP.sublime-settings"}, "caption": "Settings" },
                             {
                                 "command": "open_file", "args":
                                 {
                                     "file": "${packages}/FTP/Default (Windows).sublime-keymap",
                                     "platform": "Windows"
                                 },
-                                "caption": "Key Bindings – Default"
+                                "caption": "Key Bindings"
                             },
                             {
                                 "command": "open_file", "args":
@@ -50,7 +48,7 @@
                                     "file": "${packages}/FTP/Default (OSX).sublime-keymap",
                                     "platform": "OSX"
                                 },
-                                "caption": "Key Bindings – Default"
+                                "caption": "Key Bindings"
                             },
                             {
                                 "command": "open_file", "args":
@@ -58,33 +56,8 @@
                                     "file": "${packages}/FTP/Default (Linux).sublime-keymap",
                                     "platform": "Linux"
                                 },
-                                "caption": "Key Bindings – Default"
-                            },
-                            {
-                                "command": "open_file", "args":
-                                {
-                                    "file": "${packages}/User/Default (Windows).sublime-keymap",
-                                    "platform": "Windows"
-                                },
-                                "caption": "Key Bindings – User"
-                            },
-                            {
-                                "command": "open_file", "args":
-                                {
-                                    "file": "${packages}/User/Default (OSX).sublime-keymap",
-                                    "platform": "OSX"
-                                },
-                                "caption": "Key Bindings – User"
-                            },
-                            {
-                                "command": "open_file", "args":
-                                {
-                                    "file": "${packages}/User/Default (Linux).sublime-keymap",
-                                    "platform": "Linux"
-                                },
-                                "caption": "Key Bindings – User"
-                            },
-                            { "caption": "-" }
+                                "caption": "Key Bindings"
+                            }
                         ]
                     }
                 ]

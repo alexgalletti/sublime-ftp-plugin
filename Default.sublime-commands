@@ -24,7 +24,7 @@
         "command": "ftp_readme"
     },
     {
-        "caption": "FTP: Global Settings",
+        "caption": "FTP: Settings",
         "command": "open_file",
         "args":
         {
@@ -32,7 +32,7 @@
         }
     },
     {
-        "caption": "FTP: Global Key Bindings",
+        "caption": "FTP: Key Bindings",
         "command": "open_file",
         "args":
         {
@@ -41,7 +41,7 @@
         }
     },
     {
-        "caption": "FTP: Global Key Bindings",
+        "caption": "FTP: Key Bindings",
         "command": "open_file",
         "args":
         {
@@ -50,7 +50,7 @@
         }
     },
     {
-        "caption": "FTP: Global Key Bindings",
+        "caption": "FTP: Key Bindings",
         "command": "open_file",
         "args":
         {

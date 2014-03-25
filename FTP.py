@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import hashlib
+import subprocess
 from pprint import pprint
 import difflib
 
@@ -26,11 +27,21 @@ def md5_for_file(f, block_size=2**20):
     f.seek(0)
     return md5.hexdigest()
 
+def noop(*arg):
+    pass
+
 def debug(message):
     if debug_enabled:
         print('[%s][FTP.DEBUG]: %s' % (time.strftime('%Y-%m-%dT%H:%M:%S'), message))
 
+# Sublime output panel example
+# window = sublime.active_window()
+# output_panel = window.create_output_panel('ftp')
+# output.run_command('erase_view')
+# output.run_command('append', {'characters': 'mytext'})
+# window.run_command('show_panel', {'panel': 'output.ftp'})
 
+global_settings = sublime.load_settings('FTP.sublime-settings')
 debug_enabled = True
 connections = {}
 
@@ -110,9 +121,6 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         self.conn = connections[server]
 
-        self.current_path = None
-        self.current_attrs = None
-
         sublime.status_message('Connected to %s' % self.conn['server']);
 
         if stop_at_connect == True:
@@ -180,6 +188,13 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action), 1)
 
     def download(self, path, attrs):
+
+        for x in sublime.active_window().views():
+            settings = x.settings()
+            if os.path.basename(x.file_name()) == os.path.basename(path) and settings.has('ftp_site') and settings.get('ftp_site') == self.conn['server']:
+                debug('remote file is already downloaded, re-focusing')
+                return sublime.active_window().focus_view(x)
+
         debug('downloading remote file from quick panel: %s' % path)
         name = os.path.basename(path)
         local_path = os.path.join(tempfile.mkdtemp('-sublime-ftp'), self.conn['server'], attrs['parent'])
@@ -195,35 +210,111 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         view_settings.set('ftp_site', self.conn['server'])
         # sublime.set_timeout(lambda: , 1)
 
+    def rename(self, path, attrs):
+        this = self
+
+        def done(name):
+            target = os.path.join(os.path.dirname(path), name)
+            debug('renaming %s to %s' % (path, target))
+            this.conn['ftp'].rename(path, target)
+        def cancel():
+            if attrs['type'] == 'dir':
+                this.folder_actions(path, attrs)
+            else:
+                this.file_actions(path, attrs)
+
+        sublime.active_window().show_input_panel('Rename', os.path.basename(path), done, noop, cancel)
+
+    def delete(self, path, attrs):
+        yes = sublime.ok_cancel_dialog('Are you sure you want to delete the remote file %s? This action can not be reversed!' % path, 'Delete')
+        if yes:
+            debug('deleting %s from server' % path)
+            self.conn['ftp'].delete(path)
+            sublime.set_timeout(lambda: self.find(os.path.dirname(path)), 1)
+        else:
+            sublime.set_timeout(lambda: self.file_actions(path, attrs), 1)
+
+    def createFile(self, path, attrs):
+        this = self
+        def done(name):
+            target = os.path.join(path, name)
+            debug('creating new file %s' % target)
+            if not this.checkExists(path, target):
+                this.conn['ftp'].storbinary('STOR %s' % target, tempfile.SpooledTemporaryFile(0))
+            else:
+                debug('can not create %s, a file with that name already exists' % target)
+        def cancel():
+            this.folder_actions(path, attrs)
+
+        sublime.active_window().show_input_panel('Create New File', 'untitled', done, noop, cancel)
+
+    def createFolder(self, path, attrs):
+        this = self
+        def done(name):
+            target = os.path.join(path, name)
+            debug('creating new folder %s' % target)
+            if not this.checkExists(path, target):
+                this.conn['ftp'].mkd(target)
+            else:
+                debug('can not create %s, a folder with that name already exists' % target)
+        def cancel():
+            this.folder_actions(path, attrs)
+
+        sublime.active_window().show_input_panel('Create New Folder', 'untitled', done, noop, cancel)
+
+    # really dont think this works :S
+    def checkExists(self, path, lookingfor):
+        lookingfor = os.path.basename(lookingfor)
+        names = self.conn['ftp'].mlsd(path)
+        for [name, attr] in names:
+            if path == lookingfor:
+                return True
+        return False
+
     def goto(self):
         pass
 
     def file_actions(self, path, attrs):
         this = self
         def action(index):
-            if index == -1:#exit
-                return
-            elif index == 2:#download
+            if index == 2:#download
                 return this.download(path, attrs)
             elif index == 3:#rename
-                pass
+                return this.rename(path, attrs)
             elif index == 4:#chmod
                 pass
-            elif index == 5:#delete(with confirm)
+            elif index == 5:#duplicate
                 pass
+            elif index == 6:#diff with current tab
+                pass
+            elif index == 7:#delete(with confirm)
+                this.delete(path, attrs)
             else: # return back
                 return this.find(os.path.dirname(attrs['parent']))
 
         path = os.path.join(self.current_attrs['parent'] if self.current_attrs != None and 'parent' in self.current_attrs else '', self.current_path)
 
-        menu = ['%s:/%s' % (self.conn['config']['host'], path), u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete']
+        menu = ['%s:/%s' % (self.conn['config']['host'], path), u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Duplicate', u'\u2022 Diff with Current Tab', u'\u2022 Delete']
         sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action, selected_index=2), 1)
 
     def folder_actions(self):
 
+        this = self;
+
         def action(index):
             if index == 1:
-                self.find(self.current_path, self.current_attrs)
+                this.find(this.current_path, this.current_attrs)
+            elif index == 2:
+                this.createFile(this.current_path, this.current_attrs)
+            elif index == 3:
+                this.createFolder(this.current_path, this.current_attrs)
+            elif index == 4:
+                this.rename(this.current_path, this.current_attrs)
+            elif index == 5:#chmod
+                pass
+            elif index == 6:#delete(with confirm)
+                pass
+                #this.delete(this.current_path)
 
         path = os.path.join(self.current_attrs['parent'] if self.current_attrs != None and 'parent' in self.current_attrs else '', self.current_path)
 
@@ -263,6 +354,7 @@ class RemoteSync(sublime_plugin.EventListener):
                     connections[site]['ftp'].storbinary('STOR %s' % remote_file_path, f)
                     debug('uploading file complete: local(%s) remote(%s)' % (local_file_path, remote_file_path))
                 elif index == 2: # show diff of new and old file
+                    #TODO: check diff with external diff tool if speficied in config
                     def decode(s):
                         return s.decode('ascii')
                     def resetlines(s):
