@@ -4,5 +4,5 @@
 	{ "keys": ["super+ctrl+c","super+ctrl+e"], "command": "ftp_edit_server" },
 	{ "keys": ["super+ctrl+c","super+ctrl+d"], "command": "ftp_delete_server" },
 	{ "keys": ["super+ctrl+c","super+ctrl+n"], "command": "ftp_create_server" },
-	{ "keys": ["super+ctrl+c","super+ctrl+p"], "command": "ftp_show_panel" }
+	{ "keys": ["super+ctrl+c","super+ctrl+p"], "command": "ftp_toggle_panel" }
 ]

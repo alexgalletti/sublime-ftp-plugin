@@ -20,6 +20,10 @@
         "command": "ftp_delete_server"
     },
     {
+        "caption": "FTP: Toggle Panel",
+        "command": "ftp_toggle_panel",
+    },
+    {
         "caption": "FTP: Readme/Help",
         "command": "ftp_readme"
     },

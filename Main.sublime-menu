@@ -12,7 +12,8 @@
                     { "command": "ftp_connect", "caption": "Connect to Server..." },
                     { "command": "ftp_browse", "caption": "Browse Server..." },
                     { "command": "ftp_edit_server", "caption": "Edit Server..." },
-                    { "command": "ftp_delete_server", "caption": "Delete Server..." }
+                    { "command": "ftp_delete_server", "caption": "Delete Server..." },
+                    { "command": "ftp_toggle_panel", "caption": "Toggle Output Panel" }
                 ]
             }
         ]
