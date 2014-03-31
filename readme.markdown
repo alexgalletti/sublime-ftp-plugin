@@ -20,6 +20,7 @@ Because the rest of them suck ass
 - Save new server config in actual config directory
 
 ## Todo
+- Prevent uploading of a file that is already uploading (quick double save fix)
 - Status while connecting/peforming operations
 - Verify config file settings
 - Disallow certain operations on root folder, such as rename, delete, etc.

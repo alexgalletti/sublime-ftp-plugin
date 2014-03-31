@@ -14,6 +14,7 @@ import sys
 import hashlib
 import subprocess
 import difflib
+import posixpath
 from pprint import pprint
 from functools import wraps
 
@@ -279,7 +280,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 return self.window.run_command('ftp_connect')
 
             name = current_view_settings.get('ftp_site')
-            startup_path = os.path.dirname(current_view_settings.get('ftp_path'))
+            startup_path = posixpath.dirname(current_view_settings.get('ftp_path'))
 
         self.connection = connection_manager.get(name)
 
@@ -292,7 +293,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
     def list(self, path):
 
-        path = os.path.normpath(path)
+        path = posixpath.normpath(path)
 
         self.current_path = path
 
@@ -316,7 +317,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 continue
 
             file_items.append([name, attrs])
-            attrs['fullpath'] = os.path.join(path, name)
+            attrs['fullpath'] = posixpath.join(path, name)
             menu_items.append('   ' + name + ('/' if attrs['type'] == 'dir' else ''))
 
         this = self
@@ -331,7 +332,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             [name, attrs] = file_items[index]
 
             if attrs['type'] == 'dir':
-                path = os.path.dirname(attrs['fullpath']) if name == '..' else attrs['fullpath']
+                path = posixpath.dirname(attrs['fullpath']) if name == '..' else attrs['fullpath']
                 return this.list(path)
             else:
                 if attrs['type'] == 'goto':
@@ -339,7 +340,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 elif attrs['type'] == 'actions':
                     return this.folder(this.current_path)
                 elif attrs['type'] == 'back':
-                    return this.list(os.path.dirname(this.current_path))
+                    return this.list(posixpath.dirname(this.current_path))
                 else:
                     return this.file(attrs['fullpath'])
 
@@ -371,7 +372,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         def action(index):
             if index < 2: # TODO: when the first item (current path info) is selected, allow goto navigation to another file instead of just returning back
-                return this.list(os.path.dirname(path))
+                return this.list(posixpath.dirname(path))
             elif index == 2:
                 return this.edit(path)
             elif index == 3:
@@ -400,10 +401,10 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 debug('remote file is already downloaded, re-focusing')
                 return sublime.active_window().focus_view(x)
 
-        name = os.path.basename(path)
+        name = posixpath.basename(path)
         directory = os.path.dirname(path)
 
-        local_path = os.path.join(tempfile.mkdtemp('-sublime-ftp'), config['name'], directory.lstrip('/'))
+        local_path = os.path.join(tempfile.mkdtemp('-sublime-ftp'), config['name'], directory.lstrip('/').lstrip('\\'))
         os.makedirs(local_path, 0o777, True)
         local_path = os.path.join(local_path, name)
 
@@ -421,9 +422,9 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         this = self
 
         def done(name):
-            if not name or name == '' or name == os.path.basename(path):
+            if not name or name == '' or name == posixpath.basename(path):
                 return cancel()
-            target = os.path.join(os.path.dirname(path), name)
+            target = posixpath.join(posixpath.dirname(path), name)
             debug('renaming %s to %s' % (path, target))
             this.connection.rename(path, target)
 
@@ -433,7 +434,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             else:
                 this.file(path)
 
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Rename', os.path.basename(path), done, None, cancel), 1)
+        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Rename', posixpath.basename(path), done, None, cancel), 1)
 
     def chmod(self, folder=False):
         this = self
@@ -474,7 +475,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         if sublime.ok_cancel_dialog('Are you sure you want to delete the remote file %s? This action can not be reversed!' % path, 'Delete'):
             debug('deleting %s from server' % path)
             getattr(self.connection, 'delete' if folder == False else 'rmdir')(path)
-            sublime.set_timeout_async(lambda: self.list(os.path.dirname(path)), 1)
+            sublime.set_timeout_async(lambda: self.list(posixpath.dirname(path)), 1)
         else:
             sublime.set_timeout_async(lambda: self.file(path), 1)
 
@@ -482,7 +483,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         this = self
 
         def done(name):
-            target = os.path.join(path, name)
+            target = posixpath.join(path, name)
             debug('creating new %s %s' % ('folder' if folder else 'file', target))
             if not this.connection.exists(target):
                 if folder:
