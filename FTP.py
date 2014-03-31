@@ -13,8 +13,65 @@ import os
 import sys
 import hashlib
 import subprocess
-from pprint import pprint
 import difflib
+
+from pprint import pprint
+from functools import wraps
+
+panel_open = False
+
+output_panel = None
+# Sublime output panel example
+# output.run_command('erase_view')
+# output.run_command('append', {'characters': 'mytext'})
+# window.run_command('show_panel', {'panel': 'output.ftp'})
+
+global_settings = sublime.load_settings('FTP.sublime-settings')
+
+debug_enabled = global_settings.get('debug', False)
+
+connections = {}
+
+def progress(view, i=0, dir=1):
+    settings = view.settings()
+    if(settings.has('ftp_working')):
+        # This animates a little activity indicator in the status area
+        before = i % 8
+        after = (7) - before
+        if not after:
+            dir = -1
+        if not before:
+            dir = 1
+        i += dir
+        view.set_status('ftp', 'FTP Working [%s=%s]' % (' ' * before, ' ' * after))
+
+        sublime.set_timeout_async(lambda: progress(view, i, dir), 100)
+        return
+
+    view.erase_status('ftp')
+    sublime.status_message(settings.get('ftp_progress'))
+    settings.erase('ftp_progress')
+
+def monitor(argument):
+    def real_decorator(function):
+        def wrapper(*args, **kwargs):
+            view = sublime.active_window().active_view()
+            settings = view.settings()
+            settings.set('ftp_progress', 'Finished with command: %s' % argument)
+            progress(view)
+            result = function(*args, **kwargs)
+            settings.erase('ftp_working')
+            return result
+        return wrapper
+    return real_decorator
+
+def run_async(func):
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        func_hl = threading.Thread(target = func, args = args, kwargs = kwargs)
+        func_hl.start()
+        return func_hl
+    return async_func
 
 def md5_for_file(f, block_size=2**20):
     md5 = hashlib.md5()
@@ -27,25 +84,14 @@ def md5_for_file(f, block_size=2**20):
     return md5.hexdigest()
 
 def debug(message):
+    global output_panel
+    if output_panel == None:
+            output_panel = sublime.active_window().create_output_panel('ftp')
+
     if debug_enabled:
         string = '[%s][FTP.DEBUG]: %s' % (time.strftime('%Y-%m-%dT%H:%M:%S'), message)
         print(string)
         output_panel.run_command('append', {'characters': string + '\n'})
-
-panel_open = False
-
-output_panel = sublime.active_window().create_output_panel('ftp')
-# Sublime output panel example
-# output.run_command('erase_view')
-# output.run_command('append', {'characters': 'mytext'})
-# window.run_command('show_panel', {'panel': 'output.ftp'})
-
-global_settings = sublime.load_settings('FTP.sublime-settings')
-
-debug_enabled = global_settings.get('debug', False)
-
-connections = {}
-
 
 # Default connection wrapper, should eventually be a base class to implement other connection types
 class Connection(object):
@@ -60,6 +106,7 @@ class Connection(object):
     def getConfig(self):
         return self.config
 
+    @monitor('connect')
     def connect(self):
         debug('executing ftp command CONNECT')
         self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21))
@@ -70,7 +117,7 @@ class Connection(object):
         try:
             self.handler.voidcmd('NOOP')
         except Exception as e:
-            debug('exception while testing %s protocol: %s' % (self.protocol, e))
+            debug('exception while testing %s protocol: %s' % (self.protocol, str(e)))
             self.quit()
             self.handler = ftplib.FTP() # TODO: check, does this seem right? reinitialization right here and now????
             self.connect()
@@ -83,14 +130,17 @@ class Connection(object):
         except Exception as e:
             debug('exception while quitting %s protocol: %s' % (self.protocol, e))
 
+    @monitor('listing')
     def list(self, path, meta=['type', 'size', 'perm']):
         debug('executing ftp command MLSD %s meta: %s' % (path, meta))
         return self.handler.mlsd(path, meta)
 
+    @monitor('getting')
     def get(self, path, f):
         debug('executing ftp command RETR %s' % path)
         return self.handler.retrbinary('RETR %s' % path, f.write)
 
+    @monitor('putting')
     def put(self, path, f):
         debug('executing ftp command STOR %s' % path)
         return self.handler.storbinary('STOR %s' % path, f)
@@ -98,18 +148,22 @@ class Connection(object):
     def touch(self, path):
         return self.put(path, tempfile.SpooledTemporaryFile(0))
 
+    @monitor('chmodding')
     def chmod(self, path, mode):
         debug('executing ftp command CHMOD %s %s' % (mode, path))
         return self.handler.sendcmd('CHMOD %s %s' % (mode, path))
 
+    @monitor('renaming')
     def rename(self, source, target):
         debug('executing ftp command RENAME %s %s' % (source, target))
         return self.handler.rename(source, target)
 
+    @monitor('deleting')
     def delete(self, path):
         debug('executing ftp command DELETE %s' % path)
         return self.handler.delete(path)
 
+    @monitor('checking existance')
     def exists(self, path):
         debug('executing ftp command SIZE %s' % path)
         try:
@@ -117,10 +171,12 @@ class Connection(object):
         except Exception as e:
             return False
 
+    @monitor('making directory')
     def mkdir(self, path):
         debug('executing ftp command MKD %s' % path)
         return self.handler.mkd(path)
 
+    @monitor('removing directory')
     def rmdir(self, path):
         debug('executing ftp command RMD %s' % path)
         return self.handler.rmd(path)
@@ -329,6 +385,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         menu = ['%s:%s' % (self.connection.getConfig()['host'], path), u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Duplicate', u'\u2022 Diff with Current Tab', u'\u2022 Delete']
         sublime.set_timeout_async(lambda: self.window.show_quick_panel(menu, action, selected_index=2), 1)
 
+    @run_async
     def edit(self, path):
 
         config = self.connection.getConfig()
