@@ -14,13 +14,12 @@ import sys
 import hashlib
 import subprocess
 import difflib
-
 from pprint import pprint
 from functools import wraps
 
 panel_open = False
-
 output_panel = None
+
 # Sublime output panel example
 # output.run_command('erase_view')
 # output.run_command('append', {'characters': 'mytext'})
@@ -28,43 +27,12 @@ output_panel = None
 
 global_settings = sublime.load_settings('FTP.sublime-settings')
 
-debug_enabled = global_settings.get('debug', False)
-
 connections = {}
 
-def progress(view, i=0, dir=1):
-    settings = view.settings()
-    if(settings.has('ftp_working')):
-        # This animates a little activity indicator in the status area
-        before = i % 8
-        after = (7) - before
-        if not after:
-            dir = -1
-        if not before:
-            dir = 1
-        i += dir
-        view.set_status('ftp', 'FTP Working [%s=%s]' % (' ' * before, ' ' * after))
+progress_i = 0
+progress_dir = 1
 
-        sublime.set_timeout_async(lambda: progress(view, i, dir), 100)
-        return
-
-    view.erase_status('ftp')
-    sublime.status_message(settings.get('ftp_progress'))
-    settings.erase('ftp_progress')
-
-def monitor(argument):
-    def real_decorator(function):
-        def wrapper(*args, **kwargs):
-            view = sublime.active_window().active_view()
-            settings = view.settings()
-            settings.set('ftp_progress', 'Finished with command: %s' % argument)
-            progress(view)
-            result = function(*args, **kwargs)
-            settings.erase('ftp_working')
-            return result
-        return wrapper
-    return real_decorator
-
+# Some utilities that should probably be split out into a module
 def run_async(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -88,10 +56,46 @@ def debug(message):
     if output_panel == None:
             output_panel = sublime.active_window().create_output_panel('ftp')
 
-    if debug_enabled:
+    if global_settings.get('debug', False):
         string = '[%s][FTP.DEBUG]: %s' % (time.strftime('%Y-%m-%dT%H:%M:%S'), message)
         print(string)
         output_panel.run_command('append', {'characters': string + '\n'})
+
+@run_async
+def progress(view):
+    settings = view.settings()
+    if(settings.has('ftp_working')):
+        global progress_i
+        global progress_dir
+        # This animates a little activity indicator in the status area
+        before = progress_i % 8
+        after = (7) - before
+        if not after:
+            progress_dir = -1
+        if not before:
+            progress_dir = 1
+        progress_i += progress_dir
+        view.set_status('ftp', 'FTP Working [%s=%s]' % (' ' * before, ' ' * after))
+        sublime.set_timeout(lambda: progress(view), 100)
+        return
+
+    view.erase_status('ftp')
+    sublime.status_message(settings.get('ftp_status'))
+    settings.erase('ftp_progress')
+
+def monitor(argument):
+    def real_decorator(function):
+        def wrapper(*args, **kwargs):
+            view = sublime.active_window().active_view()
+            settings = view.settings()
+            settings.set('ftp_working', True)
+            settings.set('ftp_status', 'FTP Info: %s' % argument)
+            progress(view)
+            result = function(*args, **kwargs)
+            settings.erase('ftp_working')
+            return result
+        return wrapper
+    return real_decorator
 
 # Default connection wrapper, should eventually be a base class to implement other connection types
 class Connection(object):
@@ -106,7 +110,7 @@ class Connection(object):
     def getConfig(self):
         return self.config
 
-    @monitor('connect')
+    @monitor('connected to server')
     def connect(self):
         debug('executing ftp command CONNECT')
         self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21))
@@ -130,17 +134,17 @@ class Connection(object):
         except Exception as e:
             debug('exception while quitting %s protocol: %s' % (self.protocol, e))
 
-    @monitor('listing')
+    @monitor('listing directory')
     def list(self, path, meta=['type', 'size', 'perm']):
         debug('executing ftp command MLSD %s meta: %s' % (path, meta))
         return self.handler.mlsd(path, meta)
 
-    @monitor('getting')
+    @monitor('downloaded file')
     def get(self, path, f):
         debug('executing ftp command RETR %s' % path)
         return self.handler.retrbinary('RETR %s' % path, f.write)
 
-    @monitor('putting')
+    @monitor('uploaded file')
     def put(self, path, f):
         debug('executing ftp command STOR %s' % path)
         return self.handler.storbinary('STOR %s' % path, f)
@@ -148,22 +152,21 @@ class Connection(object):
     def touch(self, path):
         return self.put(path, tempfile.SpooledTemporaryFile(0))
 
-    @monitor('chmodding')
+    @monitor('changed permissions')
     def chmod(self, path, mode):
         debug('executing ftp command CHMOD %s %s' % (mode, path))
         return self.handler.sendcmd('CHMOD %s %s' % (mode, path))
 
-    @monitor('renaming')
+    @monitor('renamed target')
     def rename(self, source, target):
         debug('executing ftp command RENAME %s %s' % (source, target))
         return self.handler.rename(source, target)
 
-    @monitor('deleting')
+    @monitor('deleted file')
     def delete(self, path):
         debug('executing ftp command DELETE %s' % path)
         return self.handler.delete(path)
 
-    @monitor('checking existance')
     def exists(self, path):
         debug('executing ftp command SIZE %s' % path)
         try:
@@ -171,12 +174,12 @@ class Connection(object):
         except Exception as e:
             return False
 
-    @monitor('making directory')
+    @monitor('created directory')
     def mkdir(self, path):
         debug('executing ftp command MKD %s' % path)
         return self.handler.mkd(path)
 
-    @monitor('removing directory')
+    @monitor('removed directory')
     def rmdir(self, path):
         debug('executing ftp command RMD %s' % path)
         return self.handler.rmd(path)
