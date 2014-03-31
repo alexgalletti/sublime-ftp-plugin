@@ -5,12 +5,16 @@
 	//  - true   = always
 	"hide_output_panel": 1,
 
+	// This option will hide files that match this regex. This option
+	// can be overriden on a per-config basis as well
+	"hidden_formats": "^(\\.(?!ht(access|passwd)).*|Thumbs\\.db|_notes)",
+
+	// Sort folders before files in command palette
+	"folders_first": true,
+
 	// If debug output should be printed to the console
-	// True or 1 outputs FTP/SFTP commands, 2 is more verbose
+	// True or 1 outputs with commands, 2 is more verbose
 	"debug": true
-	//,"debug_log_file": "C:\\Users\\Username\\Desktop\\sublime_sftp_debug.txt"
-	//,"debug_log_file": "/Users/username/Desktop/sublime_sftp_debug.txt"
-	//,"debug_log_file": "/home/username/Desktop/sublime_sftp_debug.txt"
 
 	// The command line arguments to open an external diff tool. The local file
 	// path will replace any parameter equal to %1$s and the file path of the

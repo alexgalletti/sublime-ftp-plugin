@@ -28,7 +28,15 @@
         "command": "ftp_readme"
     },
     {
-        "caption": "FTP: Settings",
+        "caption": "FTP: User Settings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/User/FTP.sublime-settings"
+        }
+    },
+    {
+        "caption": "FTP: Default Settings",
         "command": "open_file",
         "args":
         {
@@ -36,7 +44,7 @@
         }
     },
     {
-        "caption": "FTP: Key Bindings",
+        "caption": "FTP: Default Key Bindings",
         "command": "open_file",
         "args":
         {
@@ -45,7 +53,7 @@
         }
     },
     {
-        "caption": "FTP: Key Bindings",
+        "caption": "FTP: Default Key Bindings",
         "command": "open_file",
         "args":
         {
@@ -54,11 +62,38 @@
         }
     },
     {
-        "caption": "FTP: Key Bindings",
+        "caption": "FTP: Default Key Bindings",
         "command": "open_file",
         "args":
         {
             "file": "${packages}/FTP/Default (Linux).sublime-keymap",
+            "platform": "Linux"
+        }
+    },
+    {
+        "caption": "FTP: User Key Bindings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/User/Default (Windows).sublime-keymap",
+            "platform": "Windows"
+        }
+    },
+    {
+        "caption": "FTP: User Key Bindings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/User/Default (OSX).sublime-keymap",
+            "platform": "OSX"
+        }
+    },
+    {
+        "caption": "FTP: User Key Bindings",
+        "command": "open_file",
+        "args":
+        {
+            "file": "${packages}/User/Default (Linux).sublime-keymap",
             "platform": "Linux"
         }
     }

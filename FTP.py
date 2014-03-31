@@ -3,7 +3,6 @@ import sublime_plugin
 import ftplib
 import webbrowser
 import threading
-import urllib
 import os
 import tempfile
 import datetime
@@ -15,6 +14,7 @@ import hashlib
 import subprocess
 import difflib
 import posixpath
+import re
 from pprint import pprint
 from functools import wraps
 
@@ -255,12 +255,15 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
 
     def menu(self):
 
-        self.menu_items = [['Setup New Connection...', 'Opens a config template for a new connection']]
+        self.menu_items = []
 
         connections = connection_manager.getConnections()
 
         for name in connections:
             self.menu_items.append([name, ('%s://%s@%s:%s' % (connections[name]['type'], connections[name]['user'], connections[name]['host'], connections[name]['port'] if 'port' in connections[name] else 21)).lower()])
+
+        self.menu_items = sorted(self.menu_items, key=lambda i: i[0])
+        self.menu_items.insert(0, ['Setup New Connection...', 'Opens a config template for a new connection'])
 
         return self.menu_items
 
@@ -310,15 +313,26 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             menu_items.append('   ..')
             file_items.append(['back', {'type': 'back'}])
 
+        config = self.connection.getConfig()
+
         listing = self.connection.list(path)
 
-        for [name, attrs] in listing:
-            if name == '.' or name == '..':
-                continue
+        if listing:
+            regex = config['hidden_formats'] if 'hidden_formats' in config else global_settings.get('hidden_formats', False)
 
-            file_items.append([name, attrs])
-            attrs['fullpath'] = posixpath.join(path, name)
-            menu_items.append('   ' + name + ('/' if attrs['type'] == 'dir' else ''))
+            if regex:
+                regex = re.compile(regex, re.I)
+
+            if config['folders_first'] if 'folders_first' in config else global_settings.get('folders_first', False):
+                listing = sorted(list(listing), key=lambda i: 0 if i[1]['type'] == 'dir' else 1)
+
+            for [name, attrs] in listing:
+                if name == '.' or name == '..' or (regex and regex.match(name)):
+                    continue
+
+                file_items.append([name, attrs])
+                attrs['fullpath'] = posixpath.join(path, name)
+                menu_items.append('   ' + name + ('/' if attrs['type'] == 'dir' else ''))
 
         this = self
 
