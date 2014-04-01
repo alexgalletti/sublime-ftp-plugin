@@ -1,7 +1,16 @@
 # Sublime FTP Plugin
 Because the rest of them suck ass
 
-## Currently Working Functionality
+### Installation
+
+1. To install this plugin download the latest version of sublime here: http://www.sublimetext.com/3
+2. In Sublime 3, navigate through the menu to Sublime > Preferences > Browse Packages... this will your Sublime Packages folder
+3. Download the most recent version of this plugin via Git or the "Download Zip" button and extract (or clone) it to your Packages folder
+4. Rename the folder to "FTP" all caps, so the configs can be read correctly
+5. Restart Sublime and you're ready to go!
+
+
+### Currently Working Functionality
 - Connecting to FTP (SFTP will come later, maybe even other protocols too)
 - Creating, editing and connecting to sites
 - Downloading, creating, renaming and deleting files
@@ -9,7 +18,7 @@ Because the rest of them suck ass
 - Key bindings
 - Menu items
 
-## Functionality in Development
+### Functionality in Development
 - Diffing remote and currently open tab (from quick panel)
 - Chmod files/folders
 - Settings file should actually use and pull in settings
@@ -19,7 +28,7 @@ Because the rest of them suck ass
 - Prompt for password (if user doesnt want to store it in config)
 - Save new server config in actual config directory
 
-## Todo
+### Todo
 - Prevent uploading of a file that is already uploading (quick double save fix)
 - Status while connecting/peforming operations
 - Verify config file settings
