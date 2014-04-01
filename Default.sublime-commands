@@ -8,6 +8,10 @@
         "command": "ftp_browse"
     },
     {
+        "caption": "FTP: Download File...",
+        "command": "ftp_file_download"
+    },
+    {
         "caption": "FTP: Create Server...",
         "command": "ftp_create_server"
     },

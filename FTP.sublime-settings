@@ -12,6 +12,12 @@
 	// Sort folders before files in command palette
 	"folders_first": true,
 
+	// Automatically open newly created files
+	"open_new_files": true,
+
+	// The folder to search for FTP config files, default is sftp_servers for compatabilitiy
+	"configs_folder": "sftp_servers",
+
 	// If debug output should be printed to the console
 	// True or 1 outputs with commands, 2 is more verbose
 	"debug": true

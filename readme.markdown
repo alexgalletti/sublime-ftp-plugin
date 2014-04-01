@@ -17,24 +17,28 @@ Because the rest of them suck ass
 - Overwrite protection (that works!)
 - Key bindings
 - Menu items
+- Status while connecting/peforming operations
+- Connection progress
+- Settings file should actually use and pull in settings
+- Chmod files/folders
+- Hide hidden files or items that match regex
+- Re-downloading of current file
 
 ### Functionality in Development
 - Diffing remote and currently open tab (from quick panel)
-- Chmod files/folders
-- Settings file should actually use and pull in settings
 - Output panel information
-- Asyncronous functions
-- Connection progress
 - Prompt for password (if user doesnt want to store it in config)
+- Asyncronous functions
 - Save new server config in actual config directory
 
 ### Todo
+- Handle symlink files and folders correctly
+- Disconnect from server when not in use using "quit" method on wrapper
 - Prevent uploading of a file that is already uploading (quick double save fix)
-- Status while connecting/peforming operations
 - Verify config file settings
 - Disallow certain operations on root folder, such as rename, delete, etc.
 - On rename of file also change local versions name
-- Implement folder syncing for dreamweaver like file management
+- Implement folder syncing for easier file management
 - For folder syncing create option for downloading all code/text files, optionally ignoring regexs in config
 
 > Notes: This code needs some *MAJOR* refactoring as this was once just a proof-of-concept so you might see partially rebuilt classes from time to time

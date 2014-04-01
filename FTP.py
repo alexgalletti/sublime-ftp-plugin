@@ -15,6 +15,7 @@ import subprocess
 import difflib
 import posixpath
 import re
+import collections
 from pprint import pprint
 from functools import wraps
 
@@ -51,6 +52,9 @@ def md5_for_file(f, block_size=2**20):
         md5.update(data)
     f.seek(0)
     return md5.hexdigest()
+
+def format_server(c):
+    return ('%s://%s@%s:%s%s' % (c['type'], c['user'], c['host'], c['port'] if 'port' in c else 21, c['remote_path'] if 'remote_path' in c else '/')).lower()
 
 def debug(message):
     global output_panel
@@ -100,6 +104,7 @@ def monitor(argument):
 
 # Default connection wrapper, should eventually be a base class to implement other connection types
 class Connection(object):
+
     def __init__(self, protocol):
         self.protocol = protocol
         self.handler = ftplib.FTP()
@@ -114,7 +119,7 @@ class Connection(object):
     @monitor('connected to server')
     def connect(self):
         debug('executing ftp command CONNECT')
-        self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21))
+        self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21), int(self.config['timeout']) if 'timeout' in self.config else None)
         self.handler.login(self.config['user'] if 'user' in self.config else self.config['username'], self.config['pass'] if 'pass' in self.config else self.config['password'])
 
     def test(self):
@@ -201,7 +206,7 @@ class ConnectionManager(object):
         try:
             connection.connect()
         except Exception as e:
-            debug('error trying to connect to %s' % connection.getConfig()['host'])
+            debug('error trying to connect to %s: %s' % (connection.getConfig()['host'], str(e)))
             return False
 
         self.set(name, connection)
@@ -218,7 +223,7 @@ class ConnectionManager(object):
 
     def getConnections(self):
         connections = {}
-        directory = os.path.join(sublime.packages_path(), 'User', 'sftp_servers') # TODO: change path to just 'servers', or maybe read from both?
+        directory = os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder')) # TODO: change path to just 'servers', or maybe read from both?
         for name in os.listdir(directory):
             if name[:1] == '.':
                 continue
@@ -233,8 +238,9 @@ class ConnectionManager(object):
                     continue
             json['name'] = name
             connections[name] = json
-        return connections
+        return collections.OrderedDict(sorted(connections.items(), key=lambda k: k))
 
+# Manages all connections and handles all wrappers and such
 connection_manager = ConnectionManager()
 
 class FtpConnectCommand(sublime_plugin.WindowCommand):
@@ -254,16 +260,11 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
         self.window.run_command('ftp_browse', {'name': self.menu_items[index][0]})
 
     def menu(self):
-
-        self.menu_items = []
-
+        self.menu_items = [['Setup New Connection...', 'Opens a config template for a new connection']]
         connections = connection_manager.getConnections()
 
         for name in connections:
-            self.menu_items.append([name, ('%s://%s@%s:%s' % (connections[name]['type'], connections[name]['user'], connections[name]['host'], connections[name]['port'] if 'port' in connections[name] else 21)).lower()])
-
-        self.menu_items = sorted(self.menu_items, key=lambda i: i[0])
-        self.menu_items.insert(0, ['Setup New Connection...', 'Opens a config template for a new connection'])
+            self.menu_items.append([name, format_server(connections[name])])
 
         return self.menu_items
 
@@ -291,8 +292,13 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             sublime.status_message('Error connecting to %s, check configuration' % name)
             return
 
+        config = self.connection.getConfig()
+
         sublime.status_message('Connected to %s successfully' % name)
-        self.list(startup_path if startup_path != None else '/')
+        self.list(startup_path if startup_path != None else (config['remote_path'] if 'remote_path' in config else '/'))
+
+    def is_visible(self):
+        return self.window.active_view().settings().has('ftp_site')
 
     def list(self, path):
 
@@ -335,8 +341,6 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 menu_items.append('   ' + name + ('/' if attrs['type'] == 'dir' else ''))
 
         this = self
-
-        debug('ftpbrowse.list called')
 
         def action(index):
             debug('ftpbrowse.list.action called')
@@ -505,13 +509,19 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 else:
                     with tempfile.SpooledTemporaryFile(0) as f:
                         this.connection.put(target, f)
+
+                if global_settings.get('open_new_files', False):
+                    this.edit(target)
+                else:
+                    this.list(path)
             else:
                 debug('can not create %s, a file or directory with that name already exists' % target)
-            this.list(path)
+                this.list(path)
 
         sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Create New %s' % ('Folder' if folder else 'File'), 'untitled', done, None, lambda: this.folder(path)), 1)
 
 class FtpEventListner(sublime_plugin.EventListener):
+
     def on_post_save_async(self, view):
         view_settings = view.settings()
         if not view_settings.has('ftp_site'):
@@ -522,7 +532,7 @@ class FtpEventListner(sublime_plugin.EventListener):
         connection = connection_manager.get(site)
 
         if not connection:
-            debug('fauled to get connection information for %s' % site)
+            debug('failed to get connection information for %s' % site)
             return
 
         local_file_path = view.file_name()
@@ -545,15 +555,20 @@ class FtpEventListner(sublime_plugin.EventListener):
                 connection.put(remote_file_path, f)
                 debug('uploading file complete local(%s) remote(%s)' % (local_file_path, remote_file_path))
             elif index == 2: # show diff of remote and local file
-                # TODO: check diff with external diff tool if specified in config or this if nothing else
+                debug('displaying diff file for %s' % local_file_path)
+
+                # if global_settings.has('diff_command'):
+                #     try:
+                #         subprocess.Popen(str(global_settings.get('diff_command')) % (local_file_path, remote_file_path))
+                #     except Exception as e:
+                #         debug('failed run diff program: %s' % e)
+                #     return
+
                 def decode(s):
                     return s.decode('ascii')
-                def resetlines(s):
-                    return s.strip('\n') + '\n'
 
                 diff = difflib.unified_diff(list(map(decode, tmp.readlines())), list(map(decode, f.readlines())), 'remote', 'local')
-                view.window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local_file_path), 'data': ''.join([resetlines(str(x)) for x in diff]), 'syntax': 'Packages/Diff/Diff.tmLanguage'})
-                debug('displaying diff file for %s' % local_file_path)
+                view.window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local_file_path), 'data': ''.join([(str(x).strip('\n') + '\n') for x in diff]), 'syntax': 'Packages/Diff/Diff.tmLanguage'})
             else:
                 debug('save operation aborted for %s' % local_file_path)
 
@@ -565,7 +580,7 @@ class FtpEventListner(sublime_plugin.EventListener):
         menu_diff = ['Diff With Remote File', 'Show changes between this file and the remote one']
 
         debug('comparing hashes on remote(%s) to local(%s)' % (remote_md5_hash, local_md5_hash))
-        if remote_md5_hash != local_md5_hash:
+        if local_md5_hash and remote_md5_hash != local_md5_hash:
             sublime.set_timeout(lambda: view.window().show_quick_panel([menu_overwrite, menu_cancel, menu_diff], action), 1)
         else:
             action(0)
@@ -582,12 +597,52 @@ class FtpEventListner(sublime_plugin.EventListener):
         view.settings().set('ftp_hash', md5_hash)
         debug('hash for %s created %s' % (path, md5_hash))
 
+class FtpFileInfoCommand(sublime_plugin.TextCommand):
+
+    def run(self):
+        pass
+
+    def is_visible(self):
+        return self.view.settings().has('ftp_site')
+
+
+class FtpFileDownloadCommand(sublime_plugin.TextCommand):
+
+    @run_async
+    def run(self, edit):
+        view_settings = self.view.settings()
+        if not view_settings.has('ftp_site'):
+            return
+
+        site = view_settings.get('ftp_site', False)
+
+        connection = connection_manager.get(site)
+
+        if not connection:
+            debug('failed to get connection information for %s' % site)
+            return
+
+        if self.view.is_dirty():
+            overwrite = sublime.ok_cancel_dialog('Are you sure you want to overwrite your local changes for %s?' % os.path.basename(self.view.file_name()), 'Overwrite')
+        else:
+            overwrite = True
+
+        if overwrite:
+            with open(self.view.file_name(), 'wb') as f:
+                connection.get(view_settings.get('ftp_path'), f)
+        #self.view.replace(edit, sublime.Region(0, self.view.size()), )
+
+    def is_visible(self):
+        return self.view.settings().has('ftp_site')
+
 
 class FtpReadmeCommand(sublime_plugin.WindowCommand):
+
     def run(self):
         webbrowser.open("http://git.bluechipdigital.com/blue-chip/sublime-ftp-plugin", 2, True)
 
 class FtpTogglePanelCommand(sublime_plugin.WindowCommand):
+
     def run(self):
         window = sublime.active_window()
         if hasattr(self, 'panel_open') and self.panel_open:
@@ -597,14 +652,39 @@ class FtpTogglePanelCommand(sublime_plugin.WindowCommand):
         self.panel_open = not self.panel_open if hasattr(self, 'panel_open') else True
 
 class FtpEditServerCommand(sublime_plugin.WindowCommand):
+
+    menu = []
+
     def run(self):
-        sublime.ok_cancel_dialog('edit server')
+        connections = connection_manager.getConnections()
+        for i in connections:
+            self.menu.append([connections[i]['name'], format_server(connections[i])])
+
+        sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(self.menu, self.action), 1)
+
+    def action(self, index):
+        if index != -1:
+            new_file = sublime.active_window().open_file(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
+            new_file.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
 
 class FtpDeleteServerCommand(sublime_plugin.WindowCommand):
+
+    menu = []
+
     def run(self):
-        sublime.ok_cancel_dialog('delete server')
+        connections = connection_manager.getConnections()
+        for i in connections:
+            self.menu.append([connections[i]['name'], format_server(connections[i])])
+
+        sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(self.menu, self.action), 1)
+
+    def action(self, index):
+        if index != -1:
+            if sublime.ok_cancel_dialog('Are you sure you want to delete the server %s? This action can not be undone.' % self.menu[index][0], 'Delete') == True:
+                os.remove(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
 
 class FtpCreateServerCommand(sublime_plugin.TextCommand):
+
     def run(self, edit):
         new_file = sublime.active_window().new_file()
         new_file.set_name('untitled')
@@ -615,6 +695,7 @@ class FtpCreateServerCommand(sublime_plugin.TextCommand):
         new_file.sel().add(sublime.Region(0))
 
 class FtpCreateBufferCommand(sublime_plugin.TextCommand):
+
     def run(self, edit, name='untitled', data='', syntax=''):
         new_file = sublime.active_window().new_file()
         new_file.set_name(name)

@@ -1,8 +1,10 @@
 [
-	{ "keys": ["ctrl+alt+c","ctrl+alt+c"], "command": "ftp_connect" },
-	{ "keys": ["ctrl+alt+c","ctrl+alt+b"], "command": "ftp_browse" },
-	{ "keys": ["ctrl+alt+c","ctrl+alt+e"], "command": "ftp_edit_server" },
-	{ "keys": ["ctrl+alt+c","ctrl+alt+d"], "command": "ftp_delete_server" },
-	{ "keys": ["ctrl+alt+c","ctrl+alt+n"], "command": "ftp_create_server" },
-	{ "keys": ["ctrl+alt+c","ctrl+alt+p"], "command": "ftp_toggle_panel" }
+    { "keys": ["ctrl+alt+c","ctrl+alt+c"], "command": "ftp_connect" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+b"], "command": "ftp_browse" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+i"], "command": "ftp_file_info" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+o"], "command": "ftp_file_download" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+e"], "command": "ftp_edit_server" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+d"], "command": "ftp_delete_server" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+n"], "command": "ftp_create_server" },
+    { "keys": ["ctrl+alt+c","ctrl+alt+p"], "command": "ftp_toggle_panel" }
 ]
