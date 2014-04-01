@@ -653,9 +653,8 @@ class FtpTogglePanelCommand(sublime_plugin.WindowCommand):
 
 class FtpEditServerCommand(sublime_plugin.WindowCommand):
 
-    menu = []
-
     def run(self):
+        self.menu = []
         connections = connection_manager.getConnections()
         for i in connections:
             self.menu.append([connections[i]['name'], format_server(connections[i])])
@@ -669,9 +668,8 @@ class FtpEditServerCommand(sublime_plugin.WindowCommand):
 
 class FtpDeleteServerCommand(sublime_plugin.WindowCommand):
 
-    menu = []
-
     def run(self):
+        self.menu = []
         connections = connection_manager.getConnections()
         for i in connections:
             self.menu.append([connections[i]['name'], format_server(connections[i])])
