@@ -22,11 +22,9 @@
 	// True or 1 outputs with commands, 2 is more verbose
 	"debug": true
 
-	// The command line arguments to open an external diff tool. The local file
-	// path will replace any parameter equal to %1$s and the file path of the
-	// local temp file representing the remote file will replace any parameter
-	// equal to %2$s
-	//,"diff_command": ["/usr/bin/meld", "%1$s", "%2$s"]
-	//,"diff_command": ["C:\\Program Files (x86)\\WinMerge\\WinMergeU.exe", "%1$s", "%2$s"]
-	//,"diff_command": ["/usr/bin/opendiff", "%1$s", "%2$s"]
+	// The command line arguments to open an external diff tool. The local
+	// and remote files are automatically appended to the array
+	//"diff_command": ["/usr/local/bin/ksdiff", "--diff"],
+	//"diff_command": ["/usr/bin/opendiff"],
+	//"diff_command": ["C:\\Program Files (x86)\\WinMerge\\WinMergeU.exe"]
 }

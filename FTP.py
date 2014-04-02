@@ -29,8 +29,6 @@ output_panel = None
 
 global_settings = sublime.load_settings('FTP.sublime-settings')
 
-connections = {}
-
 progress_i = 0
 progress_dir = 1
 
@@ -119,19 +117,22 @@ class Connection(object):
     @monitor('connected to server')
     def connect(self):
         debug('executing ftp command CONNECT')
-        self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21), int(self.config['timeout']) if 'timeout' in self.config else None)
-        self.handler.login(self.config['user'] if 'user' in self.config else self.config['username'], self.config['pass'] if 'pass' in self.config else self.config['password'])
+
+        try:
+            self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21), int(self.config['timeout']) if 'timeout' in self.config else None)
+            self.handler.login(self.config['user'] if 'user' in self.config else self.config['username'], self.config['pass'] if 'pass' in self.config else self.config['password'])
+        except Exception as e:
+            debug('error trying to connect to %s: %s' % (self.getConfig()['host'], str(e)))
 
     def test(self):
         debug('executing ftp command NOOP')
         try:
             self.handler.voidcmd('NOOP')
         except Exception as e:
-            debug('exception while testing %s protocol: %s' % (self.protocol, str(e)))
+            debug('exception while testing connection to %s: %s' % (self.getConfig()['host'], str(e)))
             self.quit()
             self.handler = ftplib.FTP() # TODO: check, does this seem right? reinitialization right here and now????
             self.connect()
-        return True
 
     def quit(self):
         debug('executing ftp command QUIT')
@@ -202,12 +203,7 @@ class ConnectionManager(object):
 
         connection = Connection('FTP')
         connection.setConfig(connections[name])
-
-        try:
-            connection.connect()
-        except Exception as e:
-            debug('error trying to connect to %s: %s' % (connection.getConfig()['host'], str(e)))
-            return False
+        connection.connect()
 
         self.set(name, connection)
 
@@ -272,7 +268,6 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
 class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
     connection = None
-    current_path = None
 
     @run_async
     def run(self, name=None, stop_at_connect=False, startup_path=None):
@@ -294,8 +289,8 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         config = self.connection.getConfig()
 
-        sublime.status_message('Connected to %s successfully' % name)
-        self.list(startup_path if startup_path != None else (config['remote_path'] if 'remote_path' in config else '/'))
+        sublime.status_message('Connected to %s' % name)
+        self.list(startup_path if startup_path != None else (config['last_path'] if 'last_path' in config else (config['remote_path'] if 'remote_path' in config else '/')))
 
     def is_visible(self):
         return self.window.active_view().settings().has('ftp_site')
@@ -304,9 +299,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
     def list(self, path):
 
         path = posixpath.normpath(path)
-
-        self.current_path = path
-
+        self.connection.getConfig()['last_path'] = path
         menu_items = []
         file_items = []
 
@@ -351,15 +344,15 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             [name, attrs] = file_items[index]
 
             if attrs['type'] == 'dir':
-                path = posixpath.dirname(attrs['fullpath']) if name == '..' else attrs['fullpath']
-                return this.list(path)
+                prev_path = posixpath.dirname(attrs['fullpath']) if name == '..' else attrs['fullpath']
+                return this.list(prev_path)
             else:
                 if attrs['type'] == 'goto':
-                    return this.goto(this.current_path)
+                    return this.goto(path)
                 elif attrs['type'] == 'actions':
-                    return this.folder(this.current_path)
+                    return this.folder(path)
                 elif attrs['type'] == 'back':
-                    return this.list(posixpath.dirname(this.current_path))
+                    return this.list(posixpath.dirname(path))
                 else:
                     return this.file(attrs['fullpath'])
 
@@ -371,17 +364,17 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         def action(index):
             if index < 2:
-                return this.list(path)
+                this.list(path)
             elif index == 2:
-                return this.create(path)
+                this.create(path)
             elif index == 3:
-                return this.create(path, True)
+                this.create(path, True)
             elif index == 4:
-                return this.rename(path, True)
+                this.rename(path, True)
             elif index == 5:
-                return this.chmod(path)
+                this.chmod(path)
             elif index == 6:
-                return this.delete(path, True)
+                this.delete(path, True)
 
         menu = ['%s:%s' % (self.connection.getConfig()['host'], path), u'\u2022 Back', u'\u2022 New File', u'\u2022 New Folder', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete']
         sublime.set_timeout_async(lambda: self.window.show_quick_panel(menu, action), 1)
@@ -391,21 +384,21 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         def action(index):
             if index < 2: # TODO: when the first item (current path info) is selected, allow goto navigation to another file instead of just returning back
-                return this.list(posixpath.dirname(path))
+                this.list(posixpath.dirname(path))
             elif index == 2:
-                return this.edit(path)
+                this.edit(path)
             elif index == 3:
-                return this.rename(path)
+                this.rename(path)
             elif index == 4:
-                return this.chmod(path)
+                this.chmod(path)
             elif index == 5:
-                return this.duplicate(path)
+                this.delete(path)
             elif index == 6:
-                return this.diff(path)
+                this.diff(path)
             elif index == 7:
-                return this.delete(path)
+                this.duplicate(path)
 
-        menu = ['%s:%s' % (self.connection.getConfig()['host'], path), u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Duplicate', u'\u2022 Diff with Current Tab', u'\u2022 Delete']
+        menu = ['%s:%s' % (self.connection.getConfig()['host'], path), u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete', u'\u2022 Diff with Current Tab', u'\u2022 Duplicate']
         sublime.set_timeout_async(lambda: self.window.show_quick_panel(menu, action, selected_index=2), 1)
 
     @run_async
@@ -415,7 +408,6 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         for x in sublime.active_window().views():
             settings = x.settings()
-            # TODO: if user tries to download the file again and local copy differs from remote show diff?
             if settings.has('ftp_site') and settings.get('ftp_site') == config['name'] and settings.get('ftp_path') == path:
                 debug('remote file is already downloaded, re-focusing')
                 return sublime.active_window().focus_view(x)
@@ -481,7 +473,8 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
     def diff(self):
         # 1. download file
-        # 2. run diff
+        # 2. hash
+        # 3. run diff if hashes dont match
         pass
 
     def goto(self, path):
@@ -549,7 +542,7 @@ class FtpEventListner(sublime_plugin.EventListener):
         # TODO: should check if the user even wants to compare hashes, because then we dont need this check
         # TODO: check user configurable option for overwrite protection
         # TODO: also needs to check if file even still exists on server
-        tmp = tempfile.SpooledTemporaryFile(1024**2*5) # 5MB file before writing to disk
+        tmp = tempfile.NamedTemporaryFile(delete=False)
         connection.get(remote_file_path, tmp)
         tmp.seek(0)
         remote_md5_hash = md5_for_file(tmp)
@@ -562,18 +555,24 @@ class FtpEventListner(sublime_plugin.EventListener):
                 connection.put(remote_file_path, f)
                 debug('uploading file complete local(%s) remote(%s)' % (local_file_path, remote_file_path))
             elif index == 2: # show diff of remote and local file
-                debug('displaying diff file for %s' % local_file_path)
+                debug('displaying diff file for %s, remote_tempfile(%s)' % (local_file_path, tmp.name))
 
-                # if global_settings.has('diff_command'):
-                #     try:
-                #         subprocess.Popen(str(global_settings.get('diff_command')) % (local_file_path, remote_file_path))
-                #     except Exception as e:
-                #         debug('failed run diff program: %s' % e)
-                #     return
+                # use external diff tool
+                if global_settings.has('diff_command'):
+                    args = global_settings.get('diff_command')
+                    if isinstance(args, list):
+                        args.append(local_file_path)
+                        args.append(tmp.name)
+                        try:
+                            debug('executing diff program: "%s"' % ' '.join(str(e) for e in args))
+                            subprocess.Popen(args)
+                        except Exception as e:
+                            debug('failed to run external diff program: %s' % e)
+                        return
 
+                # use internal diff tool
                 def decode(s):
                     return s.decode('ascii')
-
                 diff = difflib.unified_diff(list(map(decode, tmp.readlines())), list(map(decode, f.readlines())), 'remote', 'local')
                 view.window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local_file_path), 'data': ''.join([(str(x).strip('\n') + '\n') for x in diff]), 'syntax': 'Packages/Diff/Diff.tmLanguage'})
             else:
