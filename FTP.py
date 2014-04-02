@@ -472,9 +472,15 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('New Permissons', '0644', done, None, cancel), 1)
 
     def duplicate(self):
+        # 1. ask user the name they want the copied file to have
+        # 2. check if name is already taken
+        # 3. download current file
+        # 4. upload new file with user defined name
         pass
 
     def diff(self):
+        # 1. download file
+        # 2. run diff
         pass
 
     def goto(self, path):
@@ -615,7 +621,6 @@ class FtpFileDownloadCommand(sublime_plugin.TextCommand):
             return
 
         site = view_settings.get('ftp_site', False)
-
         connection = connection_manager.get(site)
 
         if not connection:
