@@ -12,6 +12,10 @@
         "command": "ftp_file_download"
     },
     {
+        "caption": "FTP: File Info...",
+        "command": "ftp_file_info"
+    },
+    {
         "caption": "FTP: Create Server...",
         "command": "ftp_create_server"
     },
