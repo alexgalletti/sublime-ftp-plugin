@@ -94,7 +94,7 @@ def monitor(argument):
             view = sublime.active_window().active_view()
             settings = view.settings()
             settings.set('ftp_working', True)
-            settings.set('ftp_status', 'FTP Info: %s' % argument)
+            settings.set('ftp_status', 'FTP Status: %s' % str(argument).title())
             progress(view)
             result = function(*args, **kwargs)
             settings.erase('ftp_working')
@@ -165,12 +165,12 @@ class Connection(object):
 
     @monitor('renamed target')
     def rename(self, source, target):
-        debug('executing ftp command RENAME %s %s' % (source, target))
+        debug('executing ftp command RNTO %s %s' % (source, target))
         return self.handler.rename(source, target)
 
     @monitor('deleted file')
     def delete(self, path):
-        debug('executing ftp command DELETE %s' % path)
+        debug('executing ftp command DELE %s' % path)
         return self.handler.delete(path)
 
     def exists(self, path):
@@ -274,6 +274,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
     connection = None
     current_path = None
 
+    @run_async
     def run(self, name=None, stop_at_connect=False, startup_path=None):
 
         if name == None:
@@ -289,8 +290,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         self.connection = connection_manager.get(name)
 
         if not self.connection:
-            sublime.status_message('Error connecting to %s, check configuration' % name)
-            return
+            return sublime.status_message('Error connecting to %s, check configuration' % name)
 
         config = self.connection.getConfig()
 
@@ -300,6 +300,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
     def is_visible(self):
         return self.window.active_view().settings().has('ftp_site')
 
+    @run_async
     def list(self, path):
 
         path = posixpath.normpath(path)
