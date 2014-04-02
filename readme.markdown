@@ -27,10 +27,11 @@ ___
 - Hide files or folders that match regex
 - Re-downloading/loading of current file
 - Asyncronous functions (most of them)
+- Diffing remote and currently open tab (from quick panel)
+- Duplicate files
 
 ### Functionality in Development
 ___
-- Diffing remote and currently open tab (from quick panel)
 - Output panel information
 - Prompt for password (if user doesnt want to store it in config)
 - Save new server config in actual config directory
