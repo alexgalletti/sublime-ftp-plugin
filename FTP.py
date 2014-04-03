@@ -16,7 +16,6 @@ import difflib
 import posixpath
 import re
 import collections
-from pprint import pprint
 from functools import wraps
 
 panel_open = False
@@ -122,13 +121,14 @@ def monitor(argument):
         return wrapper
     return real_decorator
 
-# Default connection wrapper, should eventually be a base class to implement other connection types
-class Connection(object):
+# Default connection wrapper for FTP, should eventually be a base class to implement other connection types
+class FTPConnection:
 
-    def __init__(self, protocol):
-        self.protocol = protocol
+    protocol = 'FTP'
+    config = None
+
+    def __init__(self):
         self.handler = ftplib.FTP()
-        self.config = None
 
     def setConfig(self, config):
         self.config = config
@@ -214,35 +214,46 @@ class Connection(object):
         debug('executing ftp command RMD %s' % path)
         return self.handler.rmd(path)
 
-class ConnectionManager(object):
+class ConnectionManager:
 
     active_connections = {}
 
-    def connect(self, name):
-        connections = self.getConnections()
+    @staticmethod
+    def connect(name):
+        connections = ConnectionManager.getConnections()
 
         if name not in connections:
             return False
 
-        connection = Connection('FTP')
-        connection.setConfig(connections[name])
+        config = connections[name]
+        connection_class = '%sConnection' % config['type'].upper()
+
+        if connection_class not in globals(): # TODO: should eventually be an import statement
+            return debug('The procotol %s is not a valid connection type for %s' % (config['type'], config['name']))
+
+        connection = globals()[connection_class]()
+        connection.setConfig(config)
         connection.connect()
 
-        self.set(name, connection)
+        ConnectionManager.set(name, connection)
+        return ConnectionManager.get(name)
 
-        return self.get(name)
+    @staticmethod
+    def set(key, value):
+        ConnectionManager.active_connections[key] = value
 
-    def set(self, key, value):
-        self.active_connections[key] = value
-
-    def get(self, name):
-        connection = self.active_connections[name] if name in self.active_connections else self.connect(name)
+    @staticmethod
+    def get(name):
+        connection = ConnectionManager.active_connections[name] if name in ConnectionManager.active_connections else ConnectionManager.connect(name)
+        if not connection:
+            return False
         connection.test()
         return connection
 
-    def getConnections(self):
+    @staticmethod
+    def getConnections():
         connections = {}
-        directory = os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder')) # TODO: change path to just 'servers', or maybe read from both?
+        directory = os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'))
         for name in os.listdir(directory):
             if name[:1] == '.':
                 continue
@@ -258,9 +269,6 @@ class ConnectionManager(object):
             json['name'] = name
             connections[name] = json
         return collections.OrderedDict(sorted(connections.items(), key=lambda k: k))
-
-# Manages all connections and handles all wrappers and such
-connection_manager = ConnectionManager()
 
 class FtpConnectCommand(sublime_plugin.WindowCommand):
 
@@ -280,7 +288,7 @@ class FtpConnectCommand(sublime_plugin.WindowCommand):
 
     def menu(self):
         self.menu_items = [['Setup New Connection...', 'Opens a config template for a new connection']]
-        connections = connection_manager.getConnections()
+        connections = ConnectionManager.getConnections()
 
         for name in connections:
             self.menu_items.append([name, format_server(connections[name])])
@@ -305,7 +313,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             name = current_view_settings.get('ftp_site')
             startup_path = posixpath.dirname(current_view_settings.get('ftp_path'))
 
-        self.connection = connection_manager.get(name)
+        self.connection = ConnectionManager.get(name)
 
         if not self.connection:
             return sublime.status_message('Error connecting to %s, check configuration' % name)
@@ -576,7 +584,7 @@ class FtpEventListner(sublime_plugin.EventListener):
 
         site = view_settings.get('ftp_site', False)
 
-        connection = connection_manager.get(site)
+        connection = ConnectionManager.get(site)
 
         if not connection:
             debug('failed to get connection information for %s' % site)
@@ -657,7 +665,7 @@ class FtpFileDownloadCommand(sublime_plugin.TextCommand):
             return
 
         site = view_settings.get('ftp_site', False)
-        connection = connection_manager.get(site)
+        connection = ConnectionManager.get(site)
 
         if not connection:
             debug('failed to get connection information for %s' % site)
@@ -696,7 +704,7 @@ class FtpEditServerCommand(sublime_plugin.WindowCommand):
 
     def run(self):
         self.menu = []
-        connections = connection_manager.getConnections()
+        connections = ConnectionManager.getConnections()
         for i in connections:
             self.menu.append([connections[i]['name'], format_server(connections[i])])
 
@@ -711,7 +719,7 @@ class FtpDeleteServerCommand(sublime_plugin.WindowCommand):
 
     def run(self):
         self.menu = []
-        connections = connection_manager.getConnections()
+        connections = ConnectionManager.getConnections()
         for i in connections:
             self.menu.append([connections[i]['name'], format_server(connections[i])])
 
