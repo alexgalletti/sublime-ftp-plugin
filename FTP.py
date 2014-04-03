@@ -24,7 +24,7 @@ output_panel = None
 # output.run_command('erase_view')
 # output.run_command('append', {'characters': 'mytext'})
 # window.run_command('show_panel', {'panel': 'output.ftp'})
-global_settings = sublime.load_settings('FTP.sublime-settings')
+global_settings = {}
 progress_i = 0
 progress_dir = 1
 
@@ -672,3 +672,9 @@ class FtpCreateBufferCommand(sublime_plugin.TextCommand):
         new_file.insert(edit, 0, data)
         new_file.sel().clear()
         new_file.sel().add(sublime.Region(0))
+
+def plugin_loaded():
+    global global_settings
+    global_settings = sublime.load_settings('FTP.sublime-settings')
+    if global_settings.get('debug') is None:
+        print('Error loading settings, please restart Sublime Text after installation')
