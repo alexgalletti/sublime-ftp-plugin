@@ -67,7 +67,7 @@ def generate_diff(local, remote):
     else:
         def decode(f):
             return list(map(lambda s: s.decode('ascii'), f.readlines()))
-        diff = difflib.unified_diff(decode(remote), decode(local), 'remote', 'local')
+        diff = difflib.unified_diff(decode(remote), decode(local), remote.name, local.name)
         sublime.active_window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local.name), 'data': ''.join([(str(x).strip('\n') + '\n') for x in diff]), 'syntax': 'Packages/Diff/Diff.tmLanguage'})
 
 def debug(message):
@@ -495,7 +495,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         view = sublime.active_window().active_view();
         if view:
             name = posixpath.basename(path)
-            with tempfile.NamedTemporaryFile(delete=False, prefix='local_%s' % name) as local, tempfile.NamedTemporaryFile(delete=False, prefix='remote_%s' % name) as remote:
+            with tempfile.NamedTemporaryFile(delete=False, prefix='', suffix='_local_%s' % name) as local, tempfile.NamedTemporaryFile(delete=False, prefix='', suffix='_remote_%s' % name) as remote:
                 local.write(bytes(view.substr(sublime.Region(0, view.size())), 'UTF-8'))
                 this.connection.get(path, remote)
                 generate_diff(local, remote)
@@ -554,7 +554,7 @@ class FtpEventListner(sublime_plugin.EventListener):
                 # TODO: should check if the user even wants to compare hashes, because then we dont need this check
                 # TODO: check user configurable option for overwrite protection
                 # TODO: also needs to check if file even still exists on server
-                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp = tempfile.NamedTemporaryFile(delete=False, prefix='', suffix='_remote_%s' % os.path.basename(local_file_path))
                 connection.get(remote_file_path, tmp)
                 tmp.seek(0)
                 remote_md5_hash = md5_for_file(tmp)
