@@ -12,6 +12,7 @@ ___
 4. Rename the folder to "FTP" all caps, so the configs can be read correctly
 5. Restart Sublime and you're ready to go!
 
+> I will eventually add this package to package control when its been a little more battle-tested
 
 ### Currently Working Functionality
 ___
@@ -35,7 +36,6 @@ ___
 - Output panel information
 - Prompt for password (if user doesnt want to store it in config)
 - Save new server config in actual config directory
-- Add repository to Package Control
 
 ### Todo
 ___
