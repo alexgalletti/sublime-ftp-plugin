@@ -531,7 +531,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                     with tempfile.SpooledTemporaryFile(0) as f:
                         this.connection.put(target, f)
 
-                if global_settings.get('open_new_files', False):
+                if global_settings.get('open_new_files', False) and folder == False:
                     this.edit(target)
                 else:
                     this.list(path)
@@ -539,7 +539,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 debug('can not create %s, a file or directory with that name already exists' % target)
                 this.list(path)
 
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Create New %s' % ('Folder' if folder else 'File'), 'untitled', done, None, lambda: this.folder(path)), 1)
+        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Create New %s' % ('Folder' if folder else 'File'), '', done, None, lambda: this.folder(path)), 1)
 
 class FtpEventListner(sublime_plugin.EventListener):
     def on_post_save_async(self, view):
