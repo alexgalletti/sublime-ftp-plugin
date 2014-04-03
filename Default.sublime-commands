@@ -32,11 +32,7 @@
         "command": "ftp_toggle_panel",
     },
     {
-        "caption": "FTP: Readme/Help",
-        "command": "ftp_readme"
-    },
-    {
-        "caption": "FTP: User Settings",
+        "caption": "FTP: Settings - User",
         "command": "open_file",
         "args":
         {
@@ -44,7 +40,7 @@
         }
     },
     {
-        "caption": "FTP: Default Settings",
+        "caption": "FTP: Settings - Default",
         "command": "open_file",
         "args":
         {
@@ -52,7 +48,7 @@
         }
     },
     {
-        "caption": "FTP: Default Key Bindings",
+        "caption": "FTP: Key Bindings - Default",
         "command": "open_file",
         "args":
         {
@@ -61,7 +57,7 @@
         }
     },
     {
-        "caption": "FTP: Default Key Bindings",
+        "caption": "FTP: Key Bindings - Default",
         "command": "open_file",
         "args":
         {
@@ -70,7 +66,7 @@
         }
     },
     {
-        "caption": "FTP: Default Key Bindings",
+        "caption": "FTP: Key Bindings - Default",
         "command": "open_file",
         "args":
         {
@@ -79,7 +75,7 @@
         }
     },
     {
-        "caption": "FTP: User Key Bindings",
+        "caption": "FTP: Key Bindings - User",
         "command": "open_file",
         "args":
         {
@@ -88,7 +84,7 @@
         }
     },
     {
-        "caption": "FTP: User Key Bindings",
+        "caption": "FTP: Key Bindings - User",
         "command": "open_file",
         "args":
         {
@@ -97,7 +93,7 @@
         }
     },
     {
-        "caption": "FTP: User Key Bindings",
+        "caption": "FTP: Key Bindings - User",
         "command": "open_file",
         "args":
         {
