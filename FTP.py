@@ -607,10 +607,13 @@ class FtpFileDownloadCommand(sublime_plugin.TextCommand):
                 if self.view.is_dirty():
                     overwrite = sublime.ok_cancel_dialog('Are you sure you want to overwrite your local changes for %s?' % os.path.basename(self.view.file_name()), 'Overwrite')
                 if overwrite:
-                    with open(self.view.file_name(), 'wb') as f:
-                        connection.get(view_settings.get('ftp_path'), f) # TODO: fix, replacing this way is easy but asks for dialog twice
+                    with open(self.view.file_name(), 'r+b') as f:
+                        path = view_settings.get('ftp_path')
+                        connection.get(path, f) # TODO: fix, replacing this way is easy but asks for dialog twice
                         f.seek(0)
-                        view_settings.set('ftp_hash', md5_for_file(f))
+                        md5_hash = md5_for_file(f)
+                        debug('hash for %s created: %s' % (path, md5_hash))
+                        view_settings.set('ftp_hash', md5_hash)
                         # self.view.replace(edit, sublime.Region(0, self.view.size()), )
             else:
                 debug('failed to get connection information for %s' % site)
