@@ -39,6 +39,9 @@ ___
 
 ### Todo
 ___
+- create ability to cancel current operation
+- use same temp folder for all sites
+- optionally show folder/file permissions on a row
 - Handle symlink files and folders correctly
 - Disconnect from server when not in use using "quit" method on wrapper
 - Prevent uploading of a file that is already uploading (quick double save fix)

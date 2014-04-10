@@ -18,6 +18,7 @@ import re
 import collections
 from functools import wraps
 
+temp_directory = tempfile.mkdtemp('-sublime-ftp')
 panel_open = False
 output_panel = None
 # Sublime output panel example
@@ -56,11 +57,14 @@ def generate_diff(local, remote):
     if global_settings.has('diff_command'):
         args = global_settings.get('diff_command')
         if isinstance(args, list):
-            args.append(local.name)
-            args.append(remote.name)
+            replacements = {'local': local.name, 'remote': remote.name}
+            formatted_args = []
+            for arg in args:
+                formatted_args.append(str(arg).format(**replacements))
+
             try:
-                debug('executing diff program: "%s"' % ' '.join(str(e) for e in args))
-                subprocess.Popen(args)
+                debug('executing diff program: "%s"' % ' '.join(formatted_args))
+                subprocess.Popen(formatted_args)
             except Exception as e:
                 debug('failed to run external diff program: %s' % e)
             return
@@ -97,7 +101,7 @@ def progress(view):
         sublime.set_timeout(lambda: progress(view), 100)
         return
     view.erase_status('ftp')
-    sublime.status_message(settings.get('ftp_status'))
+    sublime.status_message('FTP Status: %s' % str(settings.get('ftp_status', 'operation ended')).title())
     settings.erase('ftp_progress')
 
 def monitor(argument):
@@ -106,7 +110,7 @@ def monitor(argument):
             view = sublime.active_window().active_view()
             settings = view.settings()
             settings.set('ftp_working', True)
-            settings.set('ftp_status', 'FTP Status: %s' % str(argument).title())
+            settings.set('ftp_status', argument)
             progress(view)
             result = function(*args, **kwargs)
             settings.erase('ftp_working')
@@ -419,7 +423,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
         name = posixpath.basename(path)
         directory = os.path.dirname(path)
-        local_path = os.path.join(tempfile.mkdtemp('-sublime-ftp'), config['name'], directory.lstrip('/').lstrip('\\'))
+        local_path = os.path.join(temp_directory, config['name'], directory.lstrip('/').lstrip('\\'))
         os.makedirs(local_path, 0o777, True)
         local_path = os.path.join(local_path, name)
 
@@ -492,7 +496,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
     def diff(self, path):
         # TODO: dont run if both files are exactly the same
         this = self
-        view = sublime.active_window().active_view();
+        view = sublime.active_window().active_view()
         if view:
             name = posixpath.basename(path)
             with tempfile.NamedTemporaryFile(delete=False, prefix='', suffix='_local_%s' % name) as local, tempfile.NamedTemporaryFile(delete=False, prefix='', suffix='_remote_%s' % name) as remote:
