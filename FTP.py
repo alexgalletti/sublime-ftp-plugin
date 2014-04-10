@@ -142,12 +142,15 @@ class FTPConnection:
     def connect(self):
         debug('executing ftp command CONNECT')
         try:
+            if global_settings.get('debug'):
+                self.handler.set_debuglevel(2)
             self.handler.connect(self.config['host'], int(self.config['port'] if 'port' in self.config else 21), int(self.config['timeout']) if 'timeout' in self.config else None)
             self.handler.login(self.config['user'] if 'user' in self.config else self.config['username'], self.config['pass'] if 'pass' in self.config else self.config['password'])
         except Exception as e:
             debug('error trying to connect to %s: %s' % (self.getConfig()['host'], str(e)))
 
     def test(self):
+        debug('testing connection %s' % format_server(self.getConfig()))
         debug('executing ftp command NOOP')
         try:
             self.handler.voidcmd('NOOP')
