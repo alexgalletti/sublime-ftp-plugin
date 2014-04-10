@@ -16,6 +16,7 @@ import difflib
 import posixpath
 import re
 import collections
+import shutil
 from functools import wraps
 
 temp_directory = tempfile.mkdtemp('-sublime-ftp')
@@ -117,6 +118,12 @@ def monitor(argument):
             return result
         return wrapper
     return real_decorator
+
+def plugin_loaded():
+    global global_settings
+    global_settings = sublime.load_settings('FTP.sublime-settings')
+    if global_settings.get('debug') is None:
+        print('Error loading settings, please restart Sublime Text after installation or update')
 
 # Default connection wrapper for FTP, should eventually be a base class to implement other connection types
 class FTPConnection:
@@ -264,6 +271,7 @@ class ConnectionManager:
             json['name'] = name
             connections[name] = json
         return collections.OrderedDict(sorted(connections.items(), key=lambda k: k))
+
 
 class FtpConnectCommand(sublime_plugin.WindowCommand):
     def run(self):
@@ -474,7 +482,8 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
         this = self
         @run_async
         def done(name):
-            if not name or name == '':
+            name = str(name).strip()
+            if not name:
                 return this.file(path)
             directory = posixpath.dirname(path)
             target = posixpath.join(directory, name)
@@ -625,6 +634,7 @@ class FtpFileDownloadCommand(sublime_plugin.TextCommand):
     def is_visible(self):
         return self.view.settings().has('ftp_site')
 
+
 class FtpTogglePanelCommand(sublime_plugin.WindowCommand):
     def run(self):
         window = sublime.active_window()
@@ -633,6 +643,7 @@ class FtpTogglePanelCommand(sublime_plugin.WindowCommand):
         else:
             window.run_command('show_panel', {'panel': 'output.ftp'})
         self.panel_open = not self.panel_open if hasattr(self, 'panel_open') else True
+
 
 class FtpEditServerCommand(sublime_plugin.WindowCommand):
     def run(self):
@@ -645,8 +656,9 @@ class FtpEditServerCommand(sublime_plugin.WindowCommand):
 
     def action(self, index):
         if index != -1:
-            new_file = sublime.active_window().open_file(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
-            new_file.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
+            view = sublime.active_window().open_file(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
+            view.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
+
 
 class FtpDeleteServerCommand(sublime_plugin.WindowCommand):
     def run(self):
@@ -660,28 +672,35 @@ class FtpDeleteServerCommand(sublime_plugin.WindowCommand):
         if index != -1:
             if sublime.ok_cancel_dialog('Are you sure you want to delete the server %s? This action can not be undone.' % self.menu[index][0], 'Delete') == True:
                 os.remove(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
+            else:
+                self.run()
+
 
 class FtpCreateServerCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        new_file = sublime.active_window().new_file()
-        new_file.set_name('untitled')
-        new_file.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
-        with open(os.path.join(sublime.packages_path(), 'FTP', 'FTP.default-config'), 'r') as f:
-            new_file.insert(edit, 0, f.read())
-        new_file.sel().clear()
-        new_file.sel().add(sublime.Region(0))
+        this = self
+        @run_async
+        def done(name):
+            name = str(name).strip()
+            if name:
+                directory = os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'))
+                path = os.path.join(directory, name)
+                if not os.path.exists(path):
+                    debug('creating config file %s' % path)
+                    shutil.copyfile(os.path.join(sublime.packages_path(), 'FTP', 'FTP.default-config'), path)
+                    sublime.active_window().open_file(path).set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
+                else:
+                    sublime.message_dialog('A file or folder with that name already exists, please enter a different name.')
+                    this.run(edit)
+
+        sublime.set_timeout(lambda: sublime.active_window().show_input_panel('New Server Name', '', done, None, None), 1)
+
 
 class FtpCreateBufferCommand(sublime_plugin.TextCommand):
     def run(self, edit, name='untitled', data='', syntax=''):
-        new_file = sublime.active_window().new_file()
-        new_file.set_name(name)
-        new_file.set_syntax_file(syntax)
-        new_file.insert(edit, 0, data)
-        new_file.sel().clear()
-        new_file.sel().add(sublime.Region(0))
-
-def plugin_loaded():
-    global global_settings
-    global_settings = sublime.load_settings('FTP.sublime-settings')
-    if global_settings.get('debug') is None:
-        print('Error loading settings, please restart Sublime Text after installation')
+        view = sublime.active_window().new_file()
+        view.set_name(name)
+        view.set_syntax_file(syntax)
+        view.insert(edit, 0, data)
+        view.sel().clear()
+        view.sel().add(sublime.Region(0))
