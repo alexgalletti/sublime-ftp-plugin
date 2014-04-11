@@ -156,7 +156,7 @@ class FTPConnection:
 
     @monitor('connected to server')
     def connect(self):
-        debug('executing ftp command CONNECT')
+        debug('executing ftp command CONNECT %s' % format_server(self.config))
         try:
             if global_settings.get('debug'):
                 self.handler.set_debuglevel(2)
