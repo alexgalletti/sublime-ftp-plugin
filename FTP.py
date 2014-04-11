@@ -20,7 +20,6 @@ import shutil
 from functools import wraps
 
 temp_directory = tempfile.mkdtemp('-sublime-ftp')
-panel_open = False
 output_panel = None
 output_panel_timer = None
 global_settings = {}
@@ -72,7 +71,7 @@ def generate_diff(local, remote):
         diff = difflib.unified_diff(decode(remote), decode(local), remote.name, local.name)
         sublime.active_window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local.name), 'data': ''.join([(str(x).strip('\n') + '\n') for x in diff]), 'syntax': 'Packages/Diff/Diff.tmLanguage'})
 
-def debug(message):
+def debug(message, show_panel=False):
     global output_panel
     global output_panel_timer
     if output_panel == None:
@@ -81,23 +80,25 @@ def debug(message):
         string = '[%s][FTP.DEBUG]: %s' % (time.strftime('%Y-%m-%dT%H:%M:%S'), message)
         print(string)
         output_panel.run_command('append', {'characters': string + '\n'})
-    # TODO: fix this so that hiding the panel doesnt close the quick panel
-    # hide_output_panel = global_settings.get('hide_output_panel', False)
-    # if hide_output_panel != True:
-    #     if output_panel_timer != None:
-    #         try:
-    #             output_panel_timer.cancel()
-    #         except Exception as e:
-    #             pass
-    #     window = sublime.active_window()
-    #     def hide():
-    #         print('hiding panel automaticalls')
-    #         window.run_command('hide_panel', {'panel': 'output.ftp'})
-    #         output_panel_timer = None
-    #     window.run_command('show_panel', {'panel': 'output.ftp'})
-    #     if isinstance(hide_output_panel, int):
-    #         output_panel_timer = threading.Timer(hide_output_panel, hide)
-    #         output_panel_timer.start()
+        output_panel.run_command('goto_line', {'line': 0})
+    # TODO: fix this so that hiding the panel doesnt close the quick panel (if even possible)
+    if show_panel:
+        hide_output_panel = global_settings.get('hide_output_panel', False)
+        if hide_output_panel != True:
+            if output_panel_timer != None:
+                try:
+                    output_panel_timer.cancel()
+                except Exception as e:
+                    pass
+            window = sublime.active_window()
+            def hide():
+                print('hiding panel automaticalls')
+                window.run_command('hide_panel', {'panel': 'output.ftp'})
+                output_panel_timer = None
+            window.run_command('show_panel', {'panel': 'output.ftp'})
+            if isinstance(hide_output_panel, int):
+                output_panel_timer = threading.Timer(hide_output_panel, hide)
+                output_panel_timer.start()
 
 @run_async
 def progress(view):
@@ -189,12 +190,12 @@ class FTPConnection:
 
     @monitor('downloaded file')
     def get(self, path, f):
-        debug('executing ftp command RETR %s' % path)
+        debug('executing ftp command RETR %s' % path, True)
         return self.handler.retrbinary('RETR %s' % path, f.write)
 
     @monitor('uploaded file')
     def put(self, path, f):
-        debug('executing ftp command STOR %s' % path)
+        debug('executing ftp command STOR %s' % path, True)
         return self.handler.storbinary('STOR %s' % path, f)
 
     def touch(self, path):
@@ -654,18 +655,14 @@ class FtpFileDownloadCommand(sublime_plugin.TextCommand):
         return self.view.settings().has('ftp_site')
 
 
-class FtpTogglePanelCommand(sublime_plugin.WindowCommand):
+class FtpShowPanelCommand(sublime_plugin.WindowCommand):
     def run(self):
         # Sublime output panel example
         # output.run_command('erase_view')
         # output.run_command('append', {'characters': 'mytext'})
         # window.run_command('show_panel', {'panel': 'output.ftp'})
-        window = sublime.active_window()
-        if hasattr(self, 'panel_open') and self.panel_open:
-            window.run_command('hide_panel', {'panel': 'output.ftp'})
-        else:
-            window.run_command('show_panel', {'panel': 'output.ftp'})
-        self.panel_open = not self.panel_open if hasattr(self, 'panel_open') else True
+        # window.run_command('hide_panel', {'panel': 'output.ftp'})
+        sublime.active_window().run_command('show_panel', {'panel': 'output.ftp'})
 
 
 class FtpEditServerCommand(sublime_plugin.WindowCommand):

@@ -28,19 +28,11 @@
         "command": "ftp_delete_server"
     },
     {
-        "caption": "FTP: Toggle Panel",
-        "command": "ftp_toggle_panel",
+        "caption": "FTP: Show Panel",
+        "command": "ftp_show_panel",
     },
     {
-        "caption": "FTP: Settings - User",
-        "command": "open_file",
-        "args":
-        {
-            "file": "${packages}/User/FTP.sublime-settings"
-        }
-    },
-    {
-        "caption": "FTP: Settings - Default",
+        "caption": "Preferences: FTP Settings",
         "command": "open_file",
         "args":
         {
@@ -48,7 +40,7 @@
         }
     },
     {
-        "caption": "FTP: Key Bindings - Default",
+        "caption": "Preferences: FTP Key Bindings",
         "command": "open_file",
         "args":
         {
@@ -57,7 +49,7 @@
         }
     },
     {
-        "caption": "FTP: Key Bindings - Default",
+        "caption": "Preferences: FTP Key Bindings",
         "command": "open_file",
         "args":
         {
@@ -66,38 +58,11 @@
         }
     },
     {
-        "caption": "FTP: Key Bindings - Default",
+        "caption": "Preferences: FTP Key Bindings",
         "command": "open_file",
         "args":
         {
             "file": "${packages}/FTP/Default (Linux).sublime-keymap",
-            "platform": "Linux"
-        }
-    },
-    {
-        "caption": "FTP: Key Bindings - User",
-        "command": "open_file",
-        "args":
-        {
-            "file": "${packages}/User/Default (Windows).sublime-keymap",
-            "platform": "Windows"
-        }
-    },
-    {
-        "caption": "FTP: Key Bindings - User",
-        "command": "open_file",
-        "args":
-        {
-            "file": "${packages}/User/Default (OSX).sublime-keymap",
-            "platform": "OSX"
-        }
-    },
-    {
-        "caption": "FTP: Key Bindings - User",
-        "command": "open_file",
-        "args":
-        {
-            "file": "${packages}/User/Default (Linux).sublime-keymap",
             "platform": "Linux"
         }
     }
