@@ -277,9 +277,10 @@ class ConnectionManager:
 
 
 class FtpConnectCommand(sublime_plugin.WindowCommand):
+    @run_async
     def run(self):
         self.menu_items = []
-        sublime.set_timeout_async(lambda: self.window.show_quick_panel(self.menu(), self.action), 1)
+        sublime.set_timeout(lambda: self.window.show_quick_panel(self.menu(), self.action), 1)
 
     def action(self, index):
         if index == -1:
@@ -379,14 +380,14 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 else:
                     return this.file(attrs['fullpath'])
 
-        sublime.set_timeout_async(lambda: self.window.show_quick_panel(menu_items, action), 1)
+        sublime.set_timeout(lambda: self.window.show_quick_panel(menu_items, action), 1)
 
     def folder(self, path):
         # TODO: should not be able to rename or delete root folder (/)
         debug('ftpbrowse.folder called')
         this = self
         def action(index):
-            if index < 2:
+            if index in [0, 1]:
                 this.list(path)
             elif index == 2:
                 this.create(path)
@@ -400,12 +401,12 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 this.delete(path, True)
 
         menu = ['%s:%s' % (self.connection.getConfig()['host'], path), u'\u2022 Back', u'\u2022 New File', u'\u2022 New Folder', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete']
-        sublime.set_timeout_async(lambda: self.window.show_quick_panel(menu, action), 1)
+        sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action), 1)
 
     def file(self, path):
         this = self
         def action(index):
-            if index < 2: # TODO: when the first item (current path info) is selected, allow goto navigation to another file instead of just returning back
+            if index in [0, 1]: # TODO: when the first item (current path info) is selected, allow goto navigation to another file instead of just returning back
                 this.list(posixpath.dirname(path))
             elif index == 2:
                 this.edit(path)
@@ -421,7 +422,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 this.duplicate(path)
 
         menu = ['%s:%s' % (self.connection.getConfig()['host'], path), u'\u2022 Back', u'\u2022 Edit', u'\u2022 Rename', u'\u2022 Chmod', u'\u2022 Delete', u'\u2022 Diff with Current Tab', u'\u2022 Duplicate']
-        sublime.set_timeout_async(lambda: self.window.show_quick_panel(menu, action, selected_index=2), 1)
+        sublime.set_timeout(lambda: self.window.show_quick_panel(menu, action, selected_index=2), 1)
 
     @run_async
     def edit(self, path):
@@ -463,7 +464,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             else:
                 this.file(path)
 
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Rename', posixpath.basename(path), done, None, cancel), 1)
+        sublime.set_timeout(lambda: sublime.active_window().show_input_panel('Rename', posixpath.basename(path), done, None, cancel), 1)
 
     def chmod(self, folder=False):
         this = self
@@ -479,7 +480,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
             else:
                 this.file(path)
 
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('New Permissons', '0644', done, None, cancel), 1)
+        sublime.set_timeout(lambda: sublime.active_window().show_input_panel('New Permissons', '0644', done, None, cancel), 1)
 
     def duplicate(self, path):
         this = self
@@ -501,7 +502,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 sublime.message_dialog('A file or folder with that name already exists, please enter a different name.')
                 this.duplicate(path)
 
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Name of Duplicated File', 'Copy of %s' % posixpath.basename(path), done, None, lambda: this.file(path)), 1)
+        sublime.set_timeout(lambda: sublime.active_window().show_input_panel('Name of Duplicated File', 'Copy of %s' % posixpath.basename(path), done, None, lambda: this.file(path)), 1)
         pass
 
     @run_async
@@ -524,16 +525,16 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 return this.list(path)
             debug('navigating from user input to %s' % to)
             this.list(to)
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Go to Path', path, done, None, lambda: this.list(path)), 1)
+        sublime.set_timeout(lambda: sublime.active_window().show_input_panel('Go to Path', path, done, None, lambda: this.list(path)), 1)
 
     def delete(self, path, folder=False):
         # TODO: close local file view if file is removed on server
         if sublime.ok_cancel_dialog('Are you sure you want to delete the remote file %s? This action can not be reversed!' % path, 'Delete'):
             debug('deleting %s from server' % path)
             getattr(self.connection, 'delete' if folder == False else 'rmdir')(path)
-            sublime.set_timeout_async(lambda: self.list(posixpath.dirname(path)), 1)
+            sublime.set_timeout(lambda: self.list(posixpath.dirname(path)), 1)
         else:
-            sublime.set_timeout_async(lambda: self.file(path), 1)
+            sublime.set_timeout(lambda: self.file(path), 1)
 
     def create(self, path, folder=False):
         this = self
@@ -555,7 +556,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
                 debug('can not create %s, a file or directory with that name already exists' % target)
                 this.list(path)
 
-        sublime.set_timeout_async(lambda: sublime.active_window().show_input_panel('Create New %s' % ('Folder' if folder else 'File'), '', done, None, lambda: this.folder(path)), 1)
+        sublime.set_timeout(lambda: sublime.active_window().show_input_panel('Create New %s' % ('Folder' if folder else 'File'), '', done, None, lambda: this.folder(path)), 1)
 
 class FtpEventListner(sublime_plugin.EventListener):
     def on_post_save_async(self, view):
