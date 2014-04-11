@@ -3,7 +3,7 @@
 	//  - false  = never
 	//  - number = seconds after completion
 	//  - true   = always
-	"hide_output_panel": 1,
+	"hide_output_panel": 3,
 
 	// This option will hide files that match this regex. This option
 	// can be overriden on a per-config basis as well
