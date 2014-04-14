@@ -39,6 +39,7 @@ ___
 
 ### Todo
 ___
+- switch to twisted for protocols
 - create ability to cancel current operation
 - use same temp folder for all sites
 - optionally show folder/file info/permissions on a row

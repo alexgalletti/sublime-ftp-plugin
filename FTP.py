@@ -1,23 +1,28 @@
-import sublime
-import sublime_plugin
-import ftplib
-import webbrowser
-import threading
-import os
-import tempfile
-import datetime
-import time
-import json
 import os
 import sys
-import hashlib
+import platform
+import tempfile
+import time
+import json
 import subprocess
+import ftplib
+import threading
+import logging
+import hashlib
 import difflib
 import posixpath
 import re
 import collections
 import shutil
-from functools import wraps
+import functools
+import sublime
+import sublime_plugin
+
+__file__ = os.path.normpath(os.path.abspath(__file__))
+__path__ = os.path.dirname(__file__)
+libraries_path = os.path.join(__path__, 'libraries')
+if libraries_path not in sys.path:
+    sys.path.insert(0, libraries_path)
 
 temp_directory = tempfile.mkdtemp('-sublime-ftp')
 output_panel = None
@@ -28,7 +33,7 @@ progress_dir = 1
 
 # Some utilities that should probably be split out into a module
 def run_async(func):
-    @wraps(func)
+    @functools.wraps(func)
     def async_func(*args, **kwargs):
         func_hl = threading.Thread(target = func, args = args, kwargs = kwargs)
         func_hl.start()
@@ -92,7 +97,6 @@ def debug(message, show_panel=False):
                     pass
             window = sublime.active_window()
             def hide():
-                print('hiding panel automaticalls')
                 window.run_command('hide_panel', {'panel': 'output.ftp'})
                 output_panel_timer = None
             window.run_command('show_panel', {'panel': 'output.ftp'})
@@ -191,7 +195,9 @@ class FTPConnection:
     @monitor('downloaded file')
     def get(self, path, f):
         debug('executing ftp command RETR %s' % path, True)
-        return self.handler.retrbinary('RETR %s' % path, f.write)
+        res = self.handler.retrbinary('RETR %s' % path, f.write)
+        debug('execution of ftp command RETR for %s finished with res %s' % (path, res))
+        return res
 
     @monitor('uploaded file')
     def put(self, path, f):
