@@ -633,6 +633,12 @@ class FtpEventListner(sublime_plugin.EventListener):
             view.settings().set('ftp_hash', md5_hash)
             debug('hash for %s created: %s' % (path, md5_hash))
 
+    # def on_window_command(self, window, command_name, args):
+    #     debug('on_window_command: %s: %s' % (command_name, args))
+
+    # def on_text_command(self, view, command_name, args):
+    #     debug('on_text_command: %s: %s' % (command_name, args))
+
 
 class FtpFileDownloadCommand(sublime_plugin.TextCommand):
     @run_async
@@ -673,7 +679,7 @@ class FtpShowPanelCommand(sublime_plugin.WindowCommand):
 
 class FtpEditServerCommand(sublime_plugin.WindowCommand):
     def run(self):
-        self.menu = []
+        self.menu = [['Show All Config Files...', 'Reveal the folder where all config files are stored']]
         connections = ConnectionManager.getConnections()
         for i in connections:
             self.menu.append([connections[i]['name'], format_server(connections[i])])
@@ -681,8 +687,10 @@ class FtpEditServerCommand(sublime_plugin.WindowCommand):
         sublime.set_timeout(lambda: sublime.active_window().show_quick_panel(self.menu, self.action), 1)
 
     def action(self, index):
-        if index != -1:
-            view = sublime.active_window().open_file(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
+        if index == 0:
+            self.window.run_command('open_dir', {'dir': os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'))})
+        elif index != -1:
+            view = self.window.open_file(os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'), self.menu[index][0]))
             view.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
 
 
