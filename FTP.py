@@ -721,8 +721,13 @@ class FtpCreateServerCommand(sublime_plugin.TextCommand):
                 path = os.path.join(directory, name)
                 if not os.path.exists(path):
                     debug('creating config file %s' % path)
-                    shutil.copyfile(os.path.join(sublime.packages_path(), 'FTP', 'FTP.default-config'), path)
-                    sublime.active_window().open_file(path).set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
+                    window = sublime.active_window()
+                    window.run_command('new_file_at', {'dirs': [directory]})
+                    view = window.active_view()
+                    view.set_name(name)
+                    view.set_syntax_file('Packages/JavaScript/JSON.tmLanguage')
+                    with open(os.path.join(sublime.packages_path(), 'FTP', 'FTP.default-config'), 'r') as f:
+                        view.run_command('insert_snippet', {'contents': f.read()})
                 else:
                     sublime.message_dialog('A file or folder with that name already exists, please enter a different name.')
                     this.run(edit)
