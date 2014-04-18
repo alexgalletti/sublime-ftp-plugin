@@ -87,22 +87,22 @@ def debug(message, show_panel=False):
         output_panel.run_command('append', {'characters': string + '\n'})
         output_panel.run_command('goto_line', {'line': 0})
     # TODO: fix this so that hiding the panel doesnt close the quick panel (if even possible)
-    if show_panel:
-        hide_output_panel = global_settings.get('hide_output_panel', False)
-        if hide_output_panel != True:
-            if output_panel_timer != None:
-                try:
-                    output_panel_timer.cancel()
-                except Exception as e:
-                    pass
-            window = sublime.active_window()
-            def hide():
-                window.run_command('hide_panel', {'panel': 'output.ftp'})
-                output_panel_timer = None
-            window.run_command('show_panel', {'panel': 'output.ftp'})
-            if isinstance(hide_output_panel, int):
-                output_panel_timer = threading.Timer(hide_output_panel, hide)
-                output_panel_timer.start()
+    # if show_panel:
+    #     hide_output_panel = global_settings.get('hide_output_panel', False)
+    #     if hide_output_panel != True:
+    #         if output_panel_timer != None:
+    #             try:
+    #                 output_panel_timer.cancel()
+    #             except Exception as e:
+    #                 pass
+    #         window = sublime.active_window()
+    #         def hide():
+    #             window.run_command('hide_panel', {'panel': 'output.ftp'})
+    #             output_panel_timer = None
+    #         window.run_command('show_panel', {'panel': 'output.ftp'})
+    #         if isinstance(hide_output_panel, int):
+    #             output_panel_timer = threading.Timer(hide_output_panel, hide)
+    #             output_panel_timer.start()
 
 @run_async
 def progress(view):
