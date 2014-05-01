@@ -74,7 +74,7 @@ def generate_diff(local, remote):
         def decode(f):
             return list(map(lambda s: s.decode('ascii'), f.readlines()))
         diff = difflib.unified_diff(decode(remote), decode(local), remote.name, local.name)
-        sublime.active_window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local.name), 'data': ''.join([(str(x).strip('\n') + '\n') for x in diff]), 'syntax': 'Packages/Diff/Diff.tmLanguage'})
+        sublime.active_window().run_command('ftp_create_buffer', {'name': '%s.diff' % os.path.basename(local.name), 'data': ''.join([(str(x).strip('\n') + '\n') for x in diff]), 'scratch': True, 'syntax': 'Packages/Diff/Diff.tmLanguage'})
 
 def debug(message, show_panel=False):
     global output_panel
@@ -736,10 +736,11 @@ class FtpCreateServerCommand(sublime_plugin.TextCommand):
 
 
 class FtpCreateBufferCommand(sublime_plugin.TextCommand):
-    def run(self, edit, name='untitled', data='', syntax=''):
+    def run(self, edit, name='untitled', data='', syntax='', scratch=False):
         view = sublime.active_window().new_file()
         view.set_name(name)
         view.set_syntax_file(syntax)
+        view.set_scratch(scratch)
         view.insert(edit, 0, data)
         view.sel().clear()
         view.sel().add(sublime.Region(0))

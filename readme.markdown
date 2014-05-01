@@ -39,9 +39,8 @@ ___
 
 ### Todo
 ___
-- switch to twisted for protocols
+- cant delete empty directory
 - create ability to cancel current operation
-- use same temp folder for all sites
 - optionally show folder/file info/permissions on a row
 - Handle symlink files and folders correctly
 - Disconnect from server when not in use using "quit" method on wrapper

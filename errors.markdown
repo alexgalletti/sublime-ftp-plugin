@@ -1,6 +1,40 @@
 ### Errors to fix
 
 `
+*put* 'NOOP\r\n'
+*get* '226-File successfully transferred\n'
+*get* '226 0.000 seconds (measured here), 84.29 Mbytes per second\n'
+*resp* '226-File successfully transferred\n226 0.000 seconds (measured here), 84.29 Mbytes per second'
+[2014-04-24T16:36:27][FTP.DEBUG]: executing ftp command RETR /public_html/templates/nc_multivmenu/index.php
+*cmd* 'TYPE I'
+*put* 'TYPE I\r\n'
+*get* '200 Zzz...\n'
+*resp* '200 Zzz...'
+*cmd* 'PASV'
+*put* 'PASV\r\n'
+*get* '200 TYPE is now 8-bit binary\n'
+*resp* '200 TYPE is now 8-bit binary'
+Exception in thread Thread-1809:
+Traceback (most recent call last):
+  File "X/threading.py", line 639, in _bootstrap_inner
+  File "X/threading.py", line 596, in run
+  File "C:\Users\vtrubachev\AppData\Roaming\Sublime Text 3\Packages\FTP\FTP.py", line 628, in run
+    connection.get(path, f) # TODO: fix, replacing this way is easy but asks for dialog twice
+  File "C:\Users\vtrubachev\AppData\Roaming\Sublime Text 3\Packages\FTP\FTP.py", line 116, in wrapper
+    result = function(*args, **kwargs)
+  File "C:\Users\vtrubachev\AppData\Roaming\Sublime Text 3\Packages\FTP\FTP.py", line 178, in get
+    return self.handler.retrbinary('RETR %s' % path, f.write)
+  File "X/ftplib.py", line 419, in retrbinary
+  File "X/ftplib.py", line 381, in transfercmd
+  File "X/ftplib.py", line 341, in ntransfercmd
+  File "X/ftplib.py", line 319, in makepasv
+  File "X/ftplib.py", line 855, in parse227
+ftplib.error_reply: 200 TYPE is now 8-bit binary
+`
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+`
 [2014-04-09T16:43:57][FTP.DEBUG]: executing ftp command MLSD /public_html/news/wp-content/themes/bcblog meta: ['type', 'size', 'perm']
 [2014-04-09T16:44:02][FTP.DEBUG]: ftpbrowse.list.action called
 [2014-04-09T16:44:07][FTP.DEBUG]: executing ftp command NOOP
@@ -22,6 +56,35 @@ Traceback (most recent call last):
   File "X/ftplib.py", line 187, in putline
 AttributeError: 'NoneType' object has no attribute 'sendall'
 `
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+`
+[2014-04-18T12:10:04][FTP.DEBUG]: ftpbrowse.list.action called
+[2014-04-18T12:10:04][FTP.DEBUG]: ftpbrowse.folder called
+[2014-04-18T12:10:08][FTP.DEBUG]: deleting /public_html/app/views/admin from server
+[2014-04-18T12:10:08][FTP.DEBUG]: executing ftp command RMD /public_html/app/views/admin
+*cmd* 'RMD /public_html/app/views/admin'
+*put* 'RMD /public_html/app/views/admin\r\n'
+*get* "550 Can't remove directory: Directory not empty\n"
+*resp* "550 Can't remove directory: Directory not empty"
+Traceback (most recent call last):
+  File "/Users/alexgalletti/Library/Application Support/Sublime Text 3/Packages/FTP/FTP.py", line 423, in action
+    this.delete(path, True)
+  File "/Users/alexgalletti/Library/Application Support/Sublime Text 3/Packages/FTP/FTP.py", line 556, in delete
+    getattr(self.connection, 'delete' if folder == False else 'rmdir')(path)
+  File "/Users/alexgalletti/Library/Application Support/Sublime Text 3/Packages/FTP/FTP.py", line 136, in wrapper
+    result = function(*args, **kwargs)
+  File "/Users/alexgalletti/Library/Application Support/Sublime Text 3/Packages/FTP/FTP.py", line 241, in rmdir
+    return self.handler.rmd(path)
+  File "X/ftplib.py", line 607, in rmd
+  File "X/ftplib.py", line 264, in voidcmd
+  File "X/ftplib.py", line 238, in voidresp
+  File "X/ftplib.py", line 233, in getresp
+ftplib.error_perm: 550 Can't remove directory: Directory not empty
+`
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 `
 startup time: 0.493802
