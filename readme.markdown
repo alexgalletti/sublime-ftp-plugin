@@ -24,10 +24,10 @@ ___
 - Key bindings
 - Settings (most of them, more to come)
 - Menu items
-- Status while connecting/peforming operations
+- Status while connecting/performing operations
 - Hide files or folders that match regex
 - Re-downloading/loading of current file
-- Asyncronous functions (most of them)
+- Asynchronous functions (most of them)
 - Diffing remote and currently open tab (from quick panel)
 - Duplicate files
 
@@ -39,6 +39,7 @@ ___
 
 ### Todo
 ___
+- on first use plugin breaks because the folder that its searching for sites does not exists "Users/Servers"
 - cant delete empty directory
 - create ability to cancel current operation
 - optionally show folder/file info/permissions on a row
