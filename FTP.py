@@ -86,7 +86,7 @@ def debug(message, show_panel=False):
         print(string)
         output_panel.run_command('append', {'characters': string + '\n'})
         output_panel.run_command('goto_line', {'line': 0})
-    # TODO: fix this so that hiding the panel doesnt close the quick panel (if even possible)
+    # TODO: fix this so that hiding the panel does not close the quick panel (if even possible)
     # if show_panel:
     #     hide_output_panel = global_settings.get('hide_output_panel', False)
     #     if hide_output_panel != True:
@@ -144,6 +144,10 @@ def plugin_loaded():
     global_settings = sublime.load_settings('FTP.sublime-settings')
     if global_settings.get('debug') is None:
         print('Error loading settings, please restart Sublime Text after installation or update')
+    directory = os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'))
+    if not os.path.exists(directory):
+        os.makedirs(directory, exists_ok=True)
+
 
 # Default connection wrapper for FTP, should eventually be a base class to implement other connection types
 class FTPConnection:
@@ -551,6 +555,7 @@ class FtpBrowseCommand(sublime_plugin.WindowCommand):
 
     def delete(self, path, folder=False):
         # TODO: close local file view if file is removed on server
+        # FIXME: must delete sub folders and sub files if folder is not empty to avoid error
         if sublime.ok_cancel_dialog('Are you sure you want to delete the remote file %s? This action can not be reversed!' % path, 'Delete'):
             debug('deleting %s from server' % path)
             getattr(self.connection, 'delete' if folder == False else 'rmdir')(path)
@@ -654,6 +659,7 @@ class FtpFileDownloadCommand(sublime_plugin.TextCommand):
                 if overwrite:
                     with open(self.view.file_name(), 'r+b') as f:
                         path = view_settings.get('ftp_path')
+                        f.truncate()
                         connection.get(path, f) # TODO: fix, replacing this way is easy but asks for dialog twice
                         f.seek(0)
                         md5_hash = md5_for_file(f)

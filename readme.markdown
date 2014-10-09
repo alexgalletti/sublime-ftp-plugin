@@ -2,7 +2,7 @@
 Because the rest of them suck
 
 ### About
-This plugin was created to solve some of the missing features wanted in the popular SFTP package. The goal of this project is simple; create a fast, easy to use, ftp plugin thats open source. This project also aims to be a drop-in replacement for SFTP one day. It still has a way to go but progress is being made.
+This plugin was created to solve some of the missing features wanted in the popular SFTP package. The goal of this project is simple; create a fast, easy to use, ftp plugin thats open source. This project also aims to be a drop-in replacement for SFTP one day. It still has a way to go but progress is being made. This is also my first python script and sublime plug-in so any tips appreciated :D
 
 ### Manual Installation
 ___
@@ -34,13 +34,12 @@ ___
 ### Functionality in Development
 ___
 - Output panel information
-- Prompt for password (if user doesnt want to store it in config)
-- Save new server config in actual config directory
+- Prompt for password (if user doesnt want to store it in config file)
 
 ### Todo
 ___
 - on first use plugin breaks because the folder that its searching for sites does not exists "Users/Servers"
-- cant delete empty directory
+- cant delete empty directory (due to sub folders/files)
 - create ability to cancel current operation
 - optionally show folder/file info/permissions on a row
 - Handle symlink files and folders correctly
