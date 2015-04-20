@@ -1,4 +1,5 @@
 import os
+import errno
 import sys
 import platform
 import tempfile
@@ -285,6 +286,13 @@ class ConnectionManager:
     def getConnections():
         connections = {}
         directory = os.path.join(sublime.packages_path(), 'User', global_settings.get('configs_folder'))
+        if not os.path.isdir(directory):
+            try:
+                os.makedirs(directory)
+            except OSError as exc: # Python >2.5
+                if exc.errno == errno.EEXIST and os.path.isdir(directory):
+                    pass
+                else: raise
         for name in os.listdir(directory):
             if name[:1] == '.':
                 continue
